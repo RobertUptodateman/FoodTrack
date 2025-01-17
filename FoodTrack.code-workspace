@@ -1,0 +1,69 @@
+{
+	"folders": [{
+		"path": "."
+	}],
+	"settings": {
+		"editor.fontFamily": "JetBrains Mono, 'Cascadia Code', monospace",
+		"editor.fontSize": 11,
+		"editor.tabSize": 4,
+		"editor.insertSpaces": false,
+		"editor.detectIndentation": true,
+		"editor.renderWhitespace": "all",
+		"editor.definitionLinkOpensInPeek": true,
+		"editor.cursorBlinking": "phase",
+		"editor.cursorStyle": "line-thin",
+		"editor.wordWrap": "wordWrapColumn",
+		"editor.accessibilitySupport": "on",
+		"editor.fontLigatures": false,
+		"editor.scrollbar.verticalScrollbarSize": 8,
+
+		"editor.minimap.maxColumn" : 80,
+
+		"go.goroot": "D:/Go",
+		"go.gopath": "D:/Projects",
+		"go.toolsManagement.autoUpdate": true,
+		"go.alternateTools": {},
+
+		"git.suggestSmartCommit": false,
+		"git.openRepositoryInParentFolders": "never",
+		"git.autofetch": true,
+
+		"workbench.startupEditor": "none",
+		"workbench.editor.wrapTabs": true,
+		"workbench.panel.defaultLocation": "right",
+		"workbench.panel.defaultRatio": 0.25,
+		"workbench.sideBar.location": "left",
+		"workbench.sideBar.defaultRatio": 0.15,
+		"workbench.editor.defaultRatio": 0.6,
+		"workbench.colorTheme": "SpaceBox",
+		"workbench.iconTheme": "vscode-icons",
+
+		"git.ignoreMissingGitWarning": true,
+		"explorer.confirmDelete": false,
+		"explorer.confirmDragAndDrop": false,
+		"notebook.output.wordWrap": true
+	},
+	"extensions": {
+		"recommendations": [
+			// themes and icons
+			"spacebox.spacebox-theme", // Theme
+			"vscode-icons-team.vscode-icons", // VSCode Icons
+
+			// improving code readability
+			"circlecodesolution.ccs-flutter-colors", // Flutter Colors
+
+			// git
+			"mhutchie.git-graph", // Git Graph
+
+			// languages
+			"golang.go", // Go
+
+			// support
+			"formulahendry.auto-close-tags", // Auto Close Tags
+			"formulahendry.auto-rename-tag", // Auto Rename Tag
+			"ecmel.vscode-html-css", // HTML and CSS
+			"esbenp.prettier-vscode", // Prettier
+			"zjffun.html-tree", // HTML Tree
+		]
+	}
+}
