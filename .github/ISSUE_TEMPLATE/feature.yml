@@ -1,0 +1,39 @@
+name: Новая функциональность
+description: Предложить новую функцию или улучшение
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Описание функциональности
+        Подробно опишите новую функцию или улучшение
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Что нужно добавить или улучшить?
+      placeholder: Опишите функциональность...
+    validations:
+      required: true
+
+  - type: textarea
+    id: value
+    attributes:
+      label: Ценность
+      description: Какую проблему решает эта функциональность?
+      placeholder: Опишите пользу...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки
+      description: Как понять, что функциональность реализована правильно?
+      placeholder: |
+        - [ ] Критерий 1
+        - [ ] Критерий 2
+    validations:
+      required: true
