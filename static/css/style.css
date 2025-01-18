@@ -4,4 +4,4 @@
 @import url("settings/typography.css");
 
 /* Импорт компонентов */
-@import url("components/auth.css");
+@import url("components/authentication-page.css");
