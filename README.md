@@ -8,12 +8,18 @@
 go run ./cmd/web  # Запускает веб-сервер на порту 8080
 ```
 
-  #  # Документация
+  #  # Архитектура
 
-- [Архитектура CSS](docs/css.architect.md)  # Описание структуры и правил CSS
+Подробная информация об архитектуре проекта находится в следующих документах:
+
+- [Общая архитектура](.codeinfo/main.md)
+- [CSS архитектура](.codeinfo/css.md)
+- [JavaScript архитектура](.codeinfo/javascript.md)
+- [Backend архитектура](.codeinfo/backend.md)
+- [База данных](.codeinfo/database.md)
 
   #  # Технологии
 
-- Go  # веб-сервер
-- HTML/CSS/JS  # фронтенд
-- Bootstrap  # UI компоненты
+- Go - веб-сервер
+- HTML/CSS/JS - фронтенд
+- Bootstrap - UI компоненты
