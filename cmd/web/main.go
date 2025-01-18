@@ -5,7 +5,9 @@ import (
 	"net/http"
 )
 
-// noCache добавляет заголовки для отключения кэширования
+// TODO: При релизе удалить эту функцию и её использование.
+// Сейчас она нужна для отключения кэширования во время разработки,
+// чтобы видеть изменения в статических файлах без перезапуска сервера.
 func noCache(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -16,17 +18,15 @@ func noCache(h http.Handler) http.Handler {
 }
 
 func main() {
-	// Настройка статических файлов без кэширования
+	// Обработка статических файлов
 	fs := http.FileServer(http.Dir("static"))
+	// TODO: При релизе убрать обёртку noCache, оставить только:
+	// http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.Handle("/static/", noCache(http.StripPrefix("/static/", fs)))
 
 	// Главная страница
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		// Отключаем кэширование для HTML
+		// TODO: При релизе убрать отключение кэширования
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
