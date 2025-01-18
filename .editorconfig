@@ -9,14 +9,31 @@ end_of_line = lf
 insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
+indent_style = tab
+indent_size = 4
+
+# HTML files
+[*.{html,htm}]
+indent_style = tab
+indent_size = 4
+
+# CSS files
+[*.css]
+indent_style = tab
+indent_size = 4
+
+# JavaScript files
+[*.js]
+indent_style = tab
+indent_size = 4
 
 # Markdown files
 [*.md]
-indent_style = space
-indent_size = 2
+indent_style = tab
+indent_size = 4
 trim_trailing_whitespace = false
 
-# Tree structure in markdown should be aligned
-[*/docs/*.md]
-indent_style = space
-indent_size = 2
+# Go files
+[*.go]
+indent_style = tab
+indent_size = 4
