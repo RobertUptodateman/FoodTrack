@@ -72,6 +72,7 @@ onMounted(() => {
   script.setAttribute('data-radius', botConfig.radius)
   script.setAttribute('data-onauth', 'onTelegramAuth(user)')
   script.setAttribute('data-request-access', 'write')
+  script.setAttribute('data-lang', botConfig.lang)
   
   // Добавляем скрипт в контейнер
   const container = document.getElementById(`telegram-login-${botConfig.botName}`)
