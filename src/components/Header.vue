@@ -16,12 +16,13 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { useSession } from '../store/session'
+
 const router = useRouter()
+const session = useSession()
 
 const handleLogout = () => {
-  // Очищаем данные пользователя
-  localStorage.removeItem('user_data')
-  // Перенаправляем на страницу авторизации
+  session.endSession()
   router.push('/auth')
 }
 </script>
