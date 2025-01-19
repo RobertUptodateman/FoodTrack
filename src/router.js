@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Cookies from 'js-cookie'
 import LoginPage from './components/LoginPage.vue'
 import CouponPage from './components/CouponPage.vue'
@@ -25,7 +25,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory('/FoodTrack/'),
+  history: createWebHashHistory(),
   routes
 })
 
