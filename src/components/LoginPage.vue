@@ -27,7 +27,7 @@ const loading = ref(false)
 const telegramLoginRef = ref(null)
 
 // Функция для обработки авторизации через Telegram
-const handleTelegramAuth = (user) => {
+function onTelegramAuth(user) {
   loading.value = true
   debug.value = 'Обработка данных от Telegram: ' + JSON.stringify(user)
   
@@ -56,7 +56,7 @@ onMounted(() => {
   }
 
   // Добавляем обработчик в глобальную область
-  window.onTelegramAuth = handleTelegramAuth
+  window.onTelegramAuth = onTelegramAuth
 
   try {
     // Создаем и добавляем скрипт для виджета Telegram
@@ -65,11 +65,12 @@ onMounted(() => {
     script.src = 'https://telegram.org/js/telegram-widget.js'
     script.setAttribute('data-telegram-login', 'foodtrack_auth_bot')
     script.setAttribute('data-size', 'large')
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
+    script.setAttribute('data-onauth', 'onTelegramAuth')
     script.setAttribute('data-request-access', 'write')
     script.setAttribute('data-lang', 'ru')
     script.setAttribute('data-radius', '8')
     script.setAttribute('data-userpic', 'false')
+    script.setAttribute('data-callback-url', 'https://robertuptodateman.github.io/FoodTrack/#/coupon')
     
     const container = telegramLoginRef.value
     if (container) {
