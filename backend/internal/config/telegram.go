@@ -1,5 +1,7 @@
 package config
 
+import "os"
+
 // TelegramConfig содержит настройки для авторизации через Telegram
 type TelegramConfig struct {
 	BotToken    string
@@ -9,7 +11,7 @@ type TelegramConfig struct {
 // GetTelegramConfig возвращает конфигурацию для Telegram
 func GetTelegramConfig() *TelegramConfig {
 	return &TelegramConfig{
-		BotToken:    "8064108701:AAHbI9ttk2oJ5oUgUXy8ugFby1cQtkUpSVs", // Вставьте сюда токен от BotFather
-		BotUsername: "FoodTrackAuthBot",
+		BotToken:    os.Getenv("TELEGRAM_BOT_TOKEN"),
+		BotUsername: os.Getenv("TELEGRAM_BOT_USERNAME"),
 	}
 }
