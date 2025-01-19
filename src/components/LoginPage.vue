@@ -27,15 +27,25 @@ const loading = ref(false)
 const telegramLoginRef = ref(null)
 
 // Функция для обработки авторизации через Telegram
-function onTelegramAuth(user) {
+const handleTelegramAuth = (user) => {
   loading.value = true
-  debug.value = 'Обработка данных от Telegram: ' + JSON.stringify(user)
+  debug.value = 'Получены данные от Telegram'
   
   try {
+    if (!user) {
+      error.value = 'Ошибка: не получены данные пользователя'
+      loading.value = false
+      return
+    }
+
     // Сохраняем данные пользователя в куки на 7 дней
     Cookies.set('user', JSON.stringify(user), { expires: 7 })
-    debug.value = 'Данные сохранены, переход на страницу купона...'
-    router.push('/coupon')
+    debug.value = 'Данные сохранены'
+    
+    // Добавляем небольшую задержку перед редиректом
+    setTimeout(() => {
+      router.push('/coupon')
+    }, 500)
   } catch (e) {
     error.value = 'Ошибка при сохранении данных: ' + e.message
     loading.value = false
@@ -56,7 +66,7 @@ onMounted(() => {
   }
 
   // Добавляем обработчик в глобальную область
-  window.onTelegramAuth = onTelegramAuth
+  window.onTelegramAuth = handleTelegramAuth
 
   try {
     // Создаем и добавляем скрипт для виджета Telegram
@@ -69,8 +79,6 @@ onMounted(() => {
     script.setAttribute('data-request-access', 'write')
     script.setAttribute('data-lang', 'ru')
     script.setAttribute('data-radius', '8')
-    script.setAttribute('data-userpic', 'false')
-    script.setAttribute('data-callback-url', 'https://robertuptodateman.github.io/FoodTrack/#/coupon')
     
     const container = telegramLoginRef.value
     if (container) {
