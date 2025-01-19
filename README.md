@@ -2,6 +2,8 @@
 
 Веб-приложение для агрегации купонов и отслеживания покупок с автоматической бонусной системой.
 
+[![Deploy to GitHub Pages](https://github.com/RobertUptodateman/FoodTrack/actions/workflows/deploy.yml/badge.svg)](https://github.com/RobertUptodateman/FoodTrack/actions/workflows/deploy.yml)
+
   #  # Технологии
 
 - Vue.js 3
