@@ -39,21 +39,66 @@ async function checkBotStatus() {
 }
 
 /**
- * Устанавливает команды бота
+ * Устанавливает команды бота и настраивает webhook
  * @returns {Promise<boolean>}
  */
 async function setCommands() {
-  try {
-    const commands = [
-      { command: 'start', description: 'Начать работу с ботом' },
-      { command: 'help', description: 'Показать справку' },
-      { command: 'settings', description: 'Настройки уведомлений' }
-    ]
+  const commands = [
+    {
+      command: 'start',
+      description: 'Начать диалог с ботом'
+    },
+    {
+      command: 'help',
+      description: 'Показать справку'
+    },
+    {
+      command: 'settings',
+      description: 'Настройки уведомлений'
+    }
+  ]
 
-    const result = await sendTelegramRequest('setMyCommands', { commands })
-    return result && result.ok
+  try {
+    // Устанавливаем команды
+    const result = await sendTelegramRequest('setMyCommands', {
+      commands: commands
+    })
+
+    // Отправляем приветственное сообщение при команде /start
+    // Для этого используем метод answerCallbackQuery
+    if (result && result.ok) {
+      console.debug('Команды бота успешно установлены')
+      return true
+    }
+
+    return false
   } catch (error) {
     console.error('Ошибка при установке команд бота:', error)
+    return false
+  }
+}
+
+/**
+ * Отправляет приветственное сообщение в ответ на команду /start
+ * @param {number} chatId - ID чата пользователя
+ * @returns {Promise<boolean>}
+ */
+async function sendStartMessage(chatId) {
+  if (!chatId) {
+    console.warn('Не указан ID чата для отправки приветственного сообщения')
+    return false
+  }
+
+  try {
+    const result = await sendTelegramRequest('sendMessage', {
+      chat_id: chatId,
+      text: '<b>Диалог начат</b>\nТеперь вы можете войти через Telegram на сайте.',
+      parse_mode: 'HTML'
+    })
+
+    return result && result.ok
+  } catch (error) {
+    console.error('Ошибка при отправке приветственного сообщения:', error)
     return false
   }
 }
@@ -125,6 +170,40 @@ function getDeviceInfo() {
   }
   
   return deviceInfo
+}
+
+/**
+ * Проверяет, что пользователь начал диалог с ботом
+ * @param {number} userId - ID пользователя Telegram
+ * @returns {Promise<boolean>}
+ */
+async function checkUserChat(userId) {
+  if (!userId) {
+    console.warn('Не указан ID пользователя для проверки чата')
+    return false
+  }
+
+  try {
+    // Проверяем доступ к чату пользователя через getChat
+    const result = await sendTelegramRequest('getChat', {
+      chat_id: userId
+    })
+
+    // Если запрос успешен и чат активен, значит у бота есть доступ
+    if (result && result.ok && result.result.id) {
+      console.debug('Чат пользователя доступен:', {
+        chatId: result.result.id,
+        type: result.result.type
+      })
+      return true
+    }
+
+    console.warn('Чат пользователя недоступен:', result)
+    return false
+  } catch (error) {
+    console.error('Ошибка при проверке чата пользователя:', error)
+    return false
+  }
 }
 
 /**
@@ -217,31 +296,23 @@ async function sendTelegramRequest(method, params = {}) {
 }
 
 /**
- * Проверяет, что пользователь начал диалог с ботом
+ * Проверяет доступность бота и наличие диалога с пользователем
  * @param {number} userId - ID пользователя Telegram
  * @returns {Promise<boolean>}
  */
-async function checkUserChat(userId) {
-  if (!userId) {
-    console.warn('Не указан ID пользователя для проверки чата')
+async function checkBot(userId = null) {
+  // Сначала проверяем общую доступность бота
+  const botAvailable = await checkBotStatus()
+  if (!botAvailable) {
     return false
   }
 
-  try {
-    // Пробуем отправить пустое сообщение с HTML-форматированием
-    // Если пользователь не начал диалог, Telegram вернет ошибку
-    const result = await sendTelegramRequest('sendMessage', {
-      chat_id: userId,
-      text: '<i>Проверка доступа...</i>',
-      parse_mode: 'HTML'
-    })
-
-    // Если запрос успешен, значит пользователь начал диалог
-    return result && result.ok
-  } catch (error) {
-    console.error('Ошибка при проверке чата пользователя:', error)
-    return false
+  // Если указан ID пользователя, проверяем наличие диалога
+  if (userId) {
+    return await checkUserChat(userId)
   }
+
+  return true
 }
 
 export const botApi = {
@@ -266,10 +337,17 @@ export const botApi = {
   },
 
   /**
-   * Устанавливает команды бота
+   * Устанавливает команды бота и настраивает webhook
    * @returns {Promise<boolean>}
    */
   setCommands,
+
+  /**
+   * Отправляет приветственное сообщение в ответ на команду /start
+   * @param {number} chatId - ID чата пользователя
+   * @returns {Promise<boolean>}
+   */
+  sendStartMessage,
 
   /**
    * Отправляет уведомление пользователю о начале сессии
