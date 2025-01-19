@@ -1,8 +1,8 @@
 <template>
-  <div class="app">
+  <div class="min-vh-100 bg-white">
     <template v-if="$route.name !== 'auth'">
       <Header />
-      <main class="main">
+      <main class="min-vh-100 p-4" style="min-height: calc(100vh - 120px) !important;">
         <router-view></router-view>
       </main>
       <Footer />
@@ -17,15 +17,3 @@
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 </script>
-
-<style>
-.app {
-  min-height: 100vh;
-  background-color: #fff;
-}
-
-.main {
-  min-height: calc(100vh - 120px);
-  padding: 2rem;
-}
-</style>

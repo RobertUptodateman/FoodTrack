@@ -1,5 +1,5 @@
 <template>
-  <div ref="telegramLoginContainer" class="telegram-login"></div>
+  <div ref="telegramLoginContainer" class="d-flex justify-content-center align-items-center"></div>
 </template>
 
 <script setup>
@@ -19,11 +19,3 @@ onMounted(() => {
   telegramLoginContainer.value.appendChild(script)
 })
 </script>
-
-<style scoped>
-.telegram-login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>

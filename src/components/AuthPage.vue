@@ -1,5 +1,5 @@
 <template>
-  <div class="auth">
+  <div class="min-vh-100 d-flex justify-content-center align-items-center">
     <TelegramLogin />
   </div>
 </template>
@@ -7,12 +7,3 @@
 <script setup>
 import TelegramLogin from './TelegramLogin.vue'
 </script>
-
-<style scoped>
-.auth {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>
