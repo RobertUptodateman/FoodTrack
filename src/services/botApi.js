@@ -216,12 +216,54 @@ async function sendTelegramRequest(method, params = {}) {
   }
 }
 
+/**
+ * Проверяет, что пользователь начал диалог с ботом
+ * @param {number} userId - ID пользователя Telegram
+ * @returns {Promise<boolean>}
+ */
+async function checkUserChat(userId) {
+  if (!userId) {
+    console.warn('Не указан ID пользователя для проверки чата')
+    return false
+  }
+
+  try {
+    // Пробуем отправить пустое сообщение с HTML-форматированием
+    // Если пользователь не начал диалог, Telegram вернет ошибку
+    const result = await sendTelegramRequest('sendMessage', {
+      chat_id: userId,
+      text: '<i>Проверка доступа...</i>',
+      parse_mode: 'HTML'
+    })
+
+    // Если запрос успешен, значит пользователь начал диалог
+    return result && result.ok
+  } catch (error) {
+    console.error('Ошибка при проверке чата пользователя:', error)
+    return false
+  }
+}
+
 export const botApi = {
   /**
-   * Проверяет доступность бота
+   * Проверяет доступность бота и наличие диалога с пользователем
+   * @param {number} userId - ID пользователя Telegram
    * @returns {Promise<boolean>}
    */
-  checkBot: checkBotStatus,
+  async checkBot(userId = null) {
+    // Сначала проверяем общую доступность бота
+    const botAvailable = await checkBotStatus()
+    if (!botAvailable) {
+      return false
+    }
+
+    // Если указан ID пользователя, проверяем наличие диалога
+    if (userId) {
+      return await checkUserChat(userId)
+    }
+
+    return true
+  },
 
   /**
    * Устанавливает команды бота
