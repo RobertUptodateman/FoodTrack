@@ -2,6 +2,7 @@
   "name": "foodtrack",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://robertuptodateman.github.io/FoodTrack/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
