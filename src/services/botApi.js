@@ -11,6 +11,24 @@ function getBotToken() {
 }
 
 /**
+ * Проверяет работоспособность бота
+ * @returns {Promise<boolean>}
+ */
+async function checkBotStatus() {
+  try {
+    const result = await sendTelegramRequest('getMe')
+    if (result && result.ok) {
+      console.info('Бот успешно подключен:', result.result.username)
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('Ошибка при проверке статуса бота:', error)
+    return false
+  }
+}
+
+/**
  * Форматирует дату и время в человекочитаемый формат
  * @param {Date} date - Дата для форматирования
  * @returns {string} Отформатированная дата и время
@@ -85,7 +103,7 @@ function getDeviceInfo() {
  * @param {Object} params - Параметры запроса
  * @returns {Promise<Response>}
  */
-async function sendTelegramRequest(method, params) {
+async function sendTelegramRequest(method, params = {}) {
   const token = getBotToken()
   if (!token) {
     console.error('Токен бота не настроен')
@@ -135,6 +153,12 @@ async function sendTelegramRequest(method, params) {
 
 export const botApi = {
   /**
+   * Проверяет доступность бота
+   * @returns {Promise<boolean>}
+   */
+  checkBot: checkBotStatus,
+
+  /**
    * Отправляет уведомление пользователю о начале сессии
    * @param {Object} user - Данные пользователя Telegram
    * @returns {Promise<void>}
@@ -142,6 +166,13 @@ export const botApi = {
   async notifySessionStart(user) {
     if (!user || !user.id) {
       console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
+      return
+    }
+
+    // Проверяем статус бота перед отправкой
+    const botAvailable = await checkBotStatus()
+    if (!botAvailable) {
+      console.warn('Бот недоступен, уведомление не будет отправлено')
       return
     }
 
@@ -171,6 +202,13 @@ export const botApi = {
   async notifySessionEnd(user) {
     if (!user || !user.id) {
       console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
+      return
+    }
+
+    // Проверяем статус бота перед отправкой
+    const botAvailable = await checkBotStatus()
+    if (!botAvailable) {
+      console.warn('Бот недоступен, уведомление не будет отправлено')
       return
     }
 

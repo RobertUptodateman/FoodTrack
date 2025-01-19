@@ -1,10 +1,13 @@
 <template>
   <div class="telegram-login">
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
     <div v-if="isLoading" class="loading-indicator">
       <span class="spinner"></span>
       Загрузка...
     </div>
-    <div ref="telegramLoginContainer" :class="{ 'd-none': isLoading }" class="d-flex justify-content-center align-items-center"></div>
+    <div ref="telegramLoginContainer" :class="{ 'd-none': isLoading || error }" class="d-flex justify-content-center align-items-center"></div>
   </div>
 </template>
 
@@ -12,10 +15,12 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { sessionStore } from '../store/session'
+import { botApi } from '../services/botApi'
 
 const router = useRouter()
 const telegramLoginContainer = ref(null)
 const isLoading = ref(true)
+const error = ref(null)
 let scriptElement = null
 let scriptLoadPromise = null
 
@@ -26,6 +31,8 @@ async function handleTelegramAuth(user) {
     router.push('/coupon')
   } catch (error) {
     console.error('Ошибка при авторизации:', error)
+    error.value = 'Ошибка при авторизации. Пожалуйста, попробуйте позже.'
+  } finally {
     isLoading.value = false
   }
 }
@@ -50,9 +57,10 @@ function loadTelegramScript() {
     
     // Настройка виджета
     scriptElement.setAttribute('data-telegram-login', 'goods_track_bot')
-    scriptElement.setAttribute('data-size', 'small')
+    scriptElement.setAttribute('data-size', 'large')
     scriptElement.setAttribute('data-onauth', 'onTelegramAuth(user)')
     scriptElement.setAttribute('data-request-access', 'write')
+    scriptElement.setAttribute('data-radius', '4')
 
     // Обработчики загрузки
     scriptElement.onload = () => {
@@ -62,6 +70,7 @@ function loadTelegramScript() {
     
     scriptElement.onerror = () => {
       isLoading.value = false
+      error.value = 'Не удалось загрузить виджет Telegram. Пожалуйста, проверьте подключение к интернету.'
       scriptLoadPromise = null
       reject(new Error('Не удалось загрузить виджет Telegram'))
     }
@@ -80,13 +89,22 @@ function loadTelegramScript() {
 }
 
 onMounted(async () => {
-  // Устанавливаем обработчик до загрузки скрипта
-  window.onTelegramAuth = handleTelegramAuth
-  
   try {
+    // Проверяем доступность бота
+    const botAvailable = await botApi.checkBot()
+    if (!botAvailable) {
+      error.value = 'Бот временно недоступен. Пожалуйста, попробуйте позже.'
+      isLoading.value = false
+      return
+    }
+
+    // Устанавливаем обработчик до загрузки скрипта
+    window.onTelegramAuth = handleTelegramAuth
+    
     await loadTelegramScript()
-  } catch (error) {
-    console.error('Ошибка загрузки виджета:', error)
+  } catch (err) {
+    console.error('Ошибка при инициализации:', err)
+    error.value = 'Произошла ошибка при загрузке. Пожалуйста, обновите страницу.'
     isLoading.value = false
   }
 })
@@ -105,11 +123,23 @@ onUnmounted(() => {
 .telegram-login {
   position: relative;
   min-height: 40px;
+  padding: 20px;
 }
 
 .loading-indicator {
   text-align: center;
   padding: 10px;
+  color: #666;
+}
+
+.error-message {
+  text-align: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
 }
 
 .spinner {
