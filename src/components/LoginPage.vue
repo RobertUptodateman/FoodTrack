@@ -1,9 +1,6 @@
 <template>
   <div class="container min-vh-100 d-flex justify-content-center align-items-center">
     <div class="d-flex flex-column gap-2 align-items-center">
-      <div class="alert alert-info text-center mb-3">
-        <strong>Важно:</strong> Для работы авторизации необходимо создать и настроить бота в Telegram через @BotFather
-      </div>
       <div v-if="loading" class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Загрузка...</span>
       </div>
@@ -29,13 +26,10 @@ const debug = ref(null)
 const loading = ref(false)
 const telegramLoginRef = ref(null)
 
-// ВАЖНО: Замените на имя вашего бота после создания через @BotFather
-const BOT_NAME = 'foodtrack_auth_bot'
-
 // Функция для обработки авторизации через Telegram
 const handleTelegramAuth = (user) => {
   loading.value = true
-  debug.value = 'Обработка данных от Telegram...'
+  debug.value = 'Обработка данных от Telegram: ' + JSON.stringify(user)
   
   try {
     // Сохраняем данные пользователя в куки на 7 дней
@@ -69,18 +63,19 @@ onMounted(() => {
     const script = document.createElement('script')
     script.async = true
     script.src = 'https://telegram.org/js/telegram-widget.js'
-    script.setAttribute('data-telegram-login', BOT_NAME)
+    script.setAttribute('data-telegram-login', 'foodtrack_auth_bot')
     script.setAttribute('data-size', 'large')
-    script.setAttribute('data-onauth', 'onTelegramAuth')
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
     script.setAttribute('data-request-access', 'write')
     script.setAttribute('data-lang', 'ru')
-    script.setAttribute('data-auth-url', window.location.href)
+    script.setAttribute('data-radius', '8')
+    script.setAttribute('data-userpic', 'false')
     
     const container = telegramLoginRef.value
     if (container) {
       container.innerHTML = ''
       container.appendChild(script)
-      debug.value = 'Виджет Telegram загружен. Ожидание настройки бота...'
+      debug.value = 'Виджет Telegram загружен'
     }
   } catch (e) {
     error.value = 'Ошибка при загрузке виджета: ' + e.message
