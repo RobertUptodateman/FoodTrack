@@ -17,19 +17,35 @@ const router = useRouter()
 const telegramLoginContainer = ref(null)
 const isLoading = ref(true)
 let scriptElement = null
+let scriptLoadPromise = null
 
 // Локальная функция обработчика авторизации
-function handleTelegramAuth(user) {
-  sessionStore.startSession(user)
-  router.push('/coupon')
+async function handleTelegramAuth(user) {
+  try {
+    await sessionStore.startSession(user)
+    router.push('/coupon')
+  } catch (error) {
+    console.error('Ошибка при авторизации:', error)
+    isLoading.value = false
+  }
 }
 
-// Функция загрузки скрипта с таймаутом
+// Функция загрузки скрипта с кэшированием промиса
 function loadTelegramScript() {
-  return new Promise((resolve, reject) => {
+  if (scriptLoadPromise) {
+    return scriptLoadPromise
+  }
+
+  scriptLoadPromise = new Promise((resolve, reject) => {
+    // Проверяем, не загружен ли уже скрипт
+    if (window.TelegramLoginWidget) {
+      isLoading.value = false
+      return resolve()
+    }
+
     scriptElement = document.createElement('script')
     scriptElement.async = true
-    scriptElement.defer = true // Добавляем defer для оптимизации загрузки
+    scriptElement.defer = true
     scriptElement.src = 'https://telegram.org/js/telegram-widget.js?22'
     
     // Настройка виджета
@@ -43,24 +59,30 @@ function loadTelegramScript() {
       isLoading.value = false
       resolve()
     }
+    
     scriptElement.onerror = () => {
       isLoading.value = false
+      scriptLoadPromise = null
       reject(new Error('Не удалось загрузить виджет Telegram'))
     }
 
     // Таймаут загрузки
-    const timeout = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (isLoading.value) {
         scriptElement.onerror()
       }
-    }, 10000) // 10 секунд таймаут
+    }, 10000)
 
     telegramLoginContainer.value.appendChild(scriptElement)
   })
+
+  return scriptLoadPromise
 }
 
 onMounted(async () => {
+  // Устанавливаем обработчик до загрузки скрипта
   window.onTelegramAuth = handleTelegramAuth
+  
   try {
     await loadTelegramScript()
   } catch (error) {
@@ -72,6 +94,7 @@ onMounted(async () => {
 onUnmounted(() => {
   // Очищаем все ресурсы
   delete window.onTelegramAuth
+  scriptLoadPromise = null
   if (scriptElement && scriptElement.parentNode) {
     scriptElement.parentNode.removeChild(scriptElement)
   }

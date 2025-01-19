@@ -1,4 +1,5 @@
 const BOT_API_URL = 'https://robertuptodateman.github.io/FoodTrack/api/bot'
+const API_TIMEOUT = 5000 // 5 секунд таймаут
 
 /**
  * Форматирует дату и время в человекочитаемый формат
@@ -69,6 +70,62 @@ function getDeviceInfo() {
   return deviceInfo
 }
 
+/**
+ * Отправляет запрос с таймаутом
+ * @param {string} url - URL для запроса
+ * @param {Object} data - Данные для отправки
+ * @returns {Promise<Response>}
+ */
+async function fetchWithTimeout(url, data) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET', // Используем GET вместо POST для GitHub Pages
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+      },
+      // Передаем данные через URL параметры
+      credentials: 'omit' // Отключаем передачу куки
+    })
+    
+    if (!response.ok) {
+      // Игнорируем ошибки API, просто логируем их
+      console.warn(`API вернул статус ${response.status}:`, await response.text())
+      return null
+    }
+    
+    return response
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.warn('Таймаут запроса к API')
+    } else {
+      console.warn('Ошибка запроса к API:', error)
+    }
+    return null
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+/**
+ * Кодирует объект в строку для URL
+ * @param {Object} params - Параметры для кодирования
+ * @returns {string} Закодированная строка параметров
+ */
+function encodeParams(params) {
+  return Object.entries(params)
+    .map(([key, value]) => {
+      if (typeof value === 'object') {
+        value = JSON.stringify(value)
+      }
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    })
+    .join('&')
+}
+
 export const botApi = {
   /**
    * Отправляет уведомление боту и пользователю о начале сессии
@@ -76,32 +133,17 @@ export const botApi = {
    * @returns {Promise<void>}
    */
   async notifySessionStart(user) {
-    try {
-      const deviceInfo = getDeviceInfo()
-      const message = formatUserMessage(user, 'Вход', deviceInfo)
-      
-      const response = await fetch(`${BOT_API_URL}/notify/session-start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          timestamp: new Date().toISOString(),
-          deviceInfo,
-          message // Сообщение для отправки пользователю
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Ошибка при отправке уведомления: ${response.status}`)
-      }
-    } catch (error) {
-      console.error('Ошибка при отправке уведомления о начале сессии:', error)
+    const params = {
+      userId: user.id,
+      username: user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      timestamp: new Date().toISOString(),
+      deviceInfo: getDeviceInfo(),
+      type: 'session_start'
     }
+
+    await fetchWithTimeout(`${BOT_API_URL}/notify?${encodeParams(params)}`)
   },
 
   /**
@@ -110,31 +152,16 @@ export const botApi = {
    * @returns {Promise<void>}
    */
   async notifySessionEnd(user) {
-    try {
-      const deviceInfo = getDeviceInfo()
-      const message = formatUserMessage(user, 'Выход', deviceInfo)
-      
-      const response = await fetch(`${BOT_API_URL}/notify/session-end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          timestamp: new Date().toISOString(),
-          deviceInfo,
-          message // Сообщение для отправки пользователю
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Ошибка при отправке уведомления: ${response.status}`)
-      }
-    } catch (error) {
-      console.error('Ошибка при отправке уведомления о завершении сессии:', error)
+    const params = {
+      userId: user.id,
+      username: user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      timestamp: new Date().toISOString(),
+      deviceInfo: getDeviceInfo(),
+      type: 'session_end'
     }
+
+    await fetchWithTimeout(`${BOT_API_URL}/notify?${encodeParams(params)}`)
   }
 }
