@@ -1,13 +1,17 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AuthPage from '../components/AuthPage.vue'
 import Coupon from '../components/Coupon.vue'
-import { useSession } from '../store/session'
+import { sessionStore } from '../store/session'
 
 const routes = [
   {
-    path: '/',
+    path: '/auth',
     name: 'auth',
     component: AuthPage
+  },
+  {
+    path: '/',
+    redirect: '/auth'
   },
   {
     path: '/coupon',
@@ -24,11 +28,9 @@ const router = createRouter({
 
 // Защита роутов
 router.beforeEach((to, from, next) => {
-  const session = useSession()
-  
   if (to.matched.some(record => record.meta.requiresAuth)) {
     // Проверяем наличие активной сессии
-    if (!session.hasValidSession()) {
+    if (!sessionStore.hasValidSession()) {
       next({ name: 'auth' })
     } else {
       next()
@@ -36,7 +38,7 @@ router.beforeEach((to, from, next) => {
   } else {
     // Если пользователь авторизован и пытается зайти на страницу авторизации,
     // перенаправляем его на страницу купона
-    if (to.name === 'auth' && session.hasValidSession()) {
+    if (to.name === 'auth' && sessionStore.hasValidSession()) {
       next({ name: 'coupon' })
     } else {
       next()

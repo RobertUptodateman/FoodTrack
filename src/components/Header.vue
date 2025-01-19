@@ -16,13 +16,12 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { useSession } from '../store/session'
+import { sessionStore } from '../store/session'
 
 const router = useRouter()
-const session = useSession()
 
 const handleLogout = () => {
-  session.endSession()
+  sessionStore.endSession()
   router.push('/auth')
 }
 </script>

@@ -5,15 +5,14 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSession } from '../store/session'
+import { sessionStore } from '../store/session'
 
 const router = useRouter()
 const telegramLoginContainer = ref(null)
-const session = useSession()
 
 // Глобальный обработчик авторизации
 window.onTelegramAuth = (user) => {
-  session.startSession(user)
+  sessionStore.startSession(user)
   router.push('/coupon')
 }
 
