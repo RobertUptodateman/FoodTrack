@@ -1,0 +1,85 @@
+{{define "title"}}Главная - FoodTrack{{end}}
+
+{{define "content"}}
+<div class="row">
+    <div class="col-md-8">
+        <h1 class="mb-4">Добро пожаловать в FoodTrack</h1>
+        
+        {{if .User}}
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Активные купоны</h5>
+                            <p class="card-text display-4">{{.ActiveCoupons}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Покупки за месяц</h5>
+                            <p class="card-text display-4">{{.MonthlyPurchases}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Бонусные баллы</h5>
+                            <p class="card-text display-4">{{.BonusPoints}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="mb-3">Последние купоны</h2>
+            <div class="row">
+                {{range .RecentCoupons}}
+                    <div class="col-md-6 mb-3">
+                        {{template "coupon" .}}
+                    </div>
+                {{end}}
+            </div>
+        {{else}}
+            <div class="jumbotron">
+                <h1 class="display-4">Отслеживайте покупки и экономьте</h1>
+                <p class="lead">FoodTrack поможет вам собирать купоны, отслеживать покупки и получать бонусы автоматически.</p>
+                <hr class="my-4">
+                <p>Присоединяйтесь к нам сегодня и начните экономить!</p>
+                <a class="btn btn-primary btn-lg" href="/register" role="button">Начать сейчас</a>
+            </div>
+        {{end}}
+    </div>
+    
+    <div class="col-md-4">
+        {{if .User}}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/coupons/new" class="btn btn-primary">Добавить купон</a>
+                        <a href="/purchases/new" class="btn btn-secondary">Записать покупку</a>
+                    </div>
+                </div>
+            </div>
+        {{end}}
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Популярные магазины</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {{range .PopularStores}}
+                    <a href="/store/{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        {{.Name}}
+                        <span class="badge bg-primary rounded-pill">{{.CouponCount}}</span>
+                    </a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
