@@ -2,12 +2,22 @@
 const TELEGRAM_API = 'https://api.telegram.org'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
 
+// Команды бота
+const BOT_COMMANDS = {
+  START: '/start',
+  HELP: '/help',
+  SETTINGS: '/settings'
+}
+
 // Получаем токен из переменных окружения или конфигурации
 function getBotToken() {
-  // В продакшене токен должен браться из переменных окружения
-  // Для разработки используем тестовый токен
-  const token = process.env.VUE_APP_TELEGRAM_BOT_TOKEN || '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
-  return token ? token.trim() : null
+  // Используем import.meta.env вместо process.env для клиентской части
+  const token = import.meta.env.VUE_APP_TELEGRAM_BOT_TOKEN || import.meta.env.VITE_TELEGRAM_BOT_TOKEN
+  if (!token) {
+    console.error('Токен бота не найден в переменных окружения')
+    return null
+  }
+  return token.trim()
 }
 
 /**
@@ -24,6 +34,26 @@ async function checkBotStatus() {
     return false
   } catch (error) {
     console.error('Ошибка при проверке статуса бота:', error)
+    return false
+  }
+}
+
+/**
+ * Устанавливает команды бота
+ * @returns {Promise<boolean>}
+ */
+async function setCommands() {
+  try {
+    const commands = [
+      { command: 'start', description: 'Начать работу с ботом' },
+      { command: 'help', description: 'Показать справку' },
+      { command: 'settings', description: 'Настройки уведомлений' }
+    ]
+
+    const result = await sendTelegramRequest('setMyCommands', { commands })
+    return result && result.ok
+  } catch (error) {
+    console.error('Ошибка при установке команд бота:', error)
     return false
   }
 }
@@ -115,7 +145,11 @@ async function sendTelegramRequest(method, params = {}) {
 
   try {
     const url = `${TELEGRAM_API}/bot${token}/${method}`
-    console.debug('Отправка запроса к Telegram:', { method, url })
+    console.debug('Отправка запроса к Telegram:', { 
+      method, 
+      url: url.replace(token, '***'), // Скрываем токен в логах
+      params 
+    })
 
     const response = await fetch(url, {
       method: 'POST',
@@ -126,24 +160,55 @@ async function sendTelegramRequest(method, params = {}) {
       body: JSON.stringify(params)
     })
     
+    console.debug('Получен ответ от Telegram:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+    
     const data = await response.json()
     
     if (!response.ok) {
-      console.warn(`Telegram API вернул ошибку (${response.status}):`, data)
+      console.error(`Telegram API вернул ошибку (${response.status}):`, {
+        error: data,
+        request: {
+          method,
+          params
+        }
+      })
       return null
     }
     
     if (!data.ok) {
-      console.warn('Telegram API вернул ошибку в ответе:', data.description)
+      console.error('Telegram API вернул ошибку в ответе:', {
+        description: data.description,
+        errorCode: data.error_code,
+        request: {
+          method,
+          params
+        }
+      })
       return null
     }
+    
+    console.debug('Успешный ответ от Telegram:', {
+      method,
+      result: data.result
+    })
     
     return data
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.warn('Таймаут запроса к Telegram API')
+      console.error('Таймаут запроса к Telegram API:', {
+        method,
+        timeout: API_TIMEOUT
+      })
     } else {
-      console.warn('Ошибка запроса к Telegram API:', error)
+      console.error('Ошибка запроса к Telegram API:', {
+        error: error.message,
+        method,
+        params
+      })
     }
     return null
   } finally {
@@ -157,6 +222,12 @@ export const botApi = {
    * @returns {Promise<boolean>}
    */
   checkBot: checkBotStatus,
+
+  /**
+   * Устанавливает команды бота
+   * @returns {Promise<boolean>}
+   */
+  setCommands,
 
   /**
    * Отправляет уведомление пользователю о начале сессии

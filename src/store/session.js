@@ -11,19 +11,42 @@ let sessionStatusCache = null
 export const sessionStore = {
   async startSession(user) {
     try {
+      console.log('Начало создания сессии для пользователя:', user)
+      
+      if (!user || !user.id) {
+        console.error('Некорректные данные пользователя:', user)
+        throw new Error('Некорректные данные пользователя')
+      }
+
       // Сохраняем данные пользователя
       Cookies.set(USER_COOKIE, JSON.stringify(user), { expires: 30 }) // Хранить 30 дней
+      console.log('Данные пользователя сохранены в куки')
+      
       // Создаем сессию
       Cookies.set(SESSION_COOKIE, 'true', { expires: 1 }) // Сессия живет 1 день
+      console.log('Сессия создана')
       
       // Обновляем кэш
       userDataCache = user
       sessionStatusCache = true
+      console.log('Кэш обновлен')
       
-      // Отправляем уведомление боту асинхронно
-      botApi.notifySessionStart(user).catch(() => {
+      // Проверяем доступность бота перед отправкой уведомления
+      const botAvailable = await botApi.checkBot()
+      if (!botAvailable) {
+        console.warn('Бот недоступен, уведомление о входе не будет отправлено')
+        return
+      }
+      
+      // Отправляем уведомление боту
+      console.log('Отправка уведомления о входе...')
+      try {
+        await botApi.notifySessionStart(user)
+        console.log('Уведомление о входе успешно отправлено')
+      } catch (error) {
+        console.warn('Ошибка при отправке уведомления о входе:', error)
         // Игнорируем ошибки уведомлений, они не должны блокировать работу
-      })
+      }
     } catch (error) {
       console.error('Ошибка при создании сессии:', error)
       throw error
@@ -32,19 +55,27 @@ export const sessionStore = {
 
   async endSession() {
     try {
+      console.log('Начало завершения сессии')
       const user = this.getUserData()
       
-      // Отправляем уведомление боту асинхронно перед удалением сессии
       if (user && user.id) {
-        botApi.notifySessionEnd(user).catch(() => {
+        console.log('Отправка уведомления о выходе...')
+        try {
+          await botApi.notifySessionEnd(user)
+          console.log('Уведомление о выходе успешно отправлено')
+        } catch (error) {
+          console.warn('Ошибка при отправке уведомления о выходе:', error)
           // Игнорируем ошибки уведомлений
-        })
+        }
+      } else {
+        console.warn('Нет данных пользователя для отправки уведомления о выходе')
       }
       
       // При выходе удаляем сессию и кэш
       Cookies.remove(SESSION_COOKIE)
       sessionStatusCache = false
       userDataCache = null
+      console.log('Сессия завершена, кэш очищен')
     } catch (error) {
       console.error('Ошибка при завершении сессии:', error)
       throw error
@@ -58,8 +89,10 @@ export const sessionStore = {
     }
     
     // Иначе проверяем куки и кэшируем результат
-    sessionStatusCache = !!Cookies.get(SESSION_COOKIE)
-    return sessionStatusCache
+    const hasSession = !!Cookies.get(SESSION_COOKIE)
+    console.log('Проверка сессии:', hasSession ? 'активна' : 'неактивна')
+    sessionStatusCache = hasSession
+    return hasSession
   },
 
   getUserData() {
@@ -69,7 +102,14 @@ export const sessionStore = {
     }
     
     try {
-      const userData = JSON.parse(Cookies.get(USER_COOKIE) || '{}')
+      const userCookie = Cookies.get(USER_COOKIE)
+      if (!userCookie) {
+        console.log('Куки пользователя не найдены')
+        return {}
+      }
+      
+      const userData = JSON.parse(userCookie)
+      console.log('Получены данные пользователя из куки:', userData)
       userDataCache = userData // Кэшируем результат
       return userData
     } catch (error) {
