@@ -29,7 +29,8 @@ const telegramLoginRef = ref(null)
 // Функция для обработки авторизации через Telegram
 const handleTelegramAuth = (user) => {
   loading.value = true
-  debug.value = 'Получены данные от Telegram'
+  debug.value = 'Получены данные от Telegram: ' + JSON.stringify(user)
+  console.log('Telegram auth data:', user)
   
   try {
     if (!user) {
@@ -39,14 +40,27 @@ const handleTelegramAuth = (user) => {
     }
 
     // Сохраняем данные пользователя в куки на 7 дней
-    Cookies.set('user', JSON.stringify(user), { expires: 7 })
-    debug.value = 'Данные сохранены'
+    Cookies.set('user', JSON.stringify(user), { expires: 7, path: '/' })
+    debug.value = 'Данные сохранены в куки'
+    console.log('User data saved to cookies')
     
-    // Добавляем небольшую задержку перед редиректом
-    setTimeout(() => {
-      router.push('/coupon')
-    }, 500)
+    // Проверяем, что данные сохранились
+    const savedUser = Cookies.get('user')
+    if (savedUser) {
+      debug.value = 'Данные успешно прочитаны из куков'
+      console.log('Saved user data:', savedUser)
+      
+      // Добавляем небольшую задержку перед редиректом
+      setTimeout(() => {
+        debug.value = 'Переходим на страницу купона...'
+        router.push('/coupon')
+      }, 1000)
+    } else {
+      error.value = 'Ошибка: данные не сохранились в куки'
+      loading.value = false
+    }
   } catch (e) {
+    console.error('Auth error:', e)
     error.value = 'Ошибка при сохранении данных: ' + e.message
     loading.value = false
   }
@@ -55,13 +69,17 @@ const handleTelegramAuth = (user) => {
 onMounted(() => {
   // Проверяем, есть ли сохраненный пользователь
   const savedUser = Cookies.get('user')
+  console.log('Checking saved user:', savedUser)
+  
   if (savedUser) {
     try {
       debug.value = 'Найден сохраненный пользователь'
+      console.log('Found saved user, redirecting to coupon')
       router.push('/coupon')
       return
     } catch (e) {
-      Cookies.remove('user')
+      console.error('Error with saved user:', e)
+      Cookies.remove('user', { path: '/' })
     }
   }
 
@@ -85,8 +103,10 @@ onMounted(() => {
       container.innerHTML = ''
       container.appendChild(script)
       debug.value = 'Виджет Telegram загружен'
+      console.log('Telegram widget loaded')
     }
   } catch (e) {
+    console.error('Widget error:', e)
     error.value = 'Ошибка при загрузке виджета: ' + e.message
   }
 })
