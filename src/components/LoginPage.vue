@@ -74,14 +74,8 @@ onMounted(() => {
   script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-lang', botConfig.lang)
   
-  // Добавляем скрипт в контейнер
-  const container = document.getElementById(`telegram-login-${botConfig.botName}`)
-  if (container) {
-    container.appendChild(script)
-  } else {
-    console.error('Container for Telegram login not found')
-    error.value = 'Ошибка инициализации виджета авторизации'
-  }
+  // Добавляем скрипт в head
+  document.head.appendChild(script)
 })
 
 onUnmounted(() => {
