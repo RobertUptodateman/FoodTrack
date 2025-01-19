@@ -1,12 +1,13 @@
 // Конфигурация бота
-const TELEGRAM_API = 'https://api.telegram.org/bot'
+const TELEGRAM_API = 'https://api.telegram.org'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
 
 // Получаем токен из переменных окружения или конфигурации
 function getBotToken() {
   // В продакшене токен должен браться из переменных окружения
   // Для разработки используем тестовый токен
-  return process.env.VUE_APP_TELEGRAM_BOT_TOKEN || '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
+  const token = process.env.VUE_APP_TELEGRAM_BOT_TOKEN || '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
+  return token ? token.trim() : null
 }
 
 /**
@@ -95,7 +96,10 @@ async function sendTelegramRequest(method, params) {
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
 
   try {
-    const response = await fetch(`${TELEGRAM_API}${token}/${method}`, {
+    const url = `${TELEGRAM_API}/bot${token}/${method}`
+    console.debug('Отправка запроса к Telegram:', { method, url })
+
+    const response = await fetch(url, {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -107,7 +111,7 @@ async function sendTelegramRequest(method, params) {
     const data = await response.json()
     
     if (!response.ok) {
-      console.warn(`Telegram API вернул ошибку:`, data)
+      console.warn(`Telegram API вернул ошибку (${response.status}):`, data)
       return null
     }
     
@@ -145,11 +149,15 @@ export const botApi = {
     const message = formatUserMessage(user, 'Вход', deviceInfo)
     
     try {
-      await sendTelegramRequest('sendMessage', {
+      const result = await sendTelegramRequest('sendMessage', {
         chat_id: user.id,
         text: message,
         parse_mode: 'HTML'
       })
+      
+      if (result) {
+        console.debug('Уведомление о входе отправлено успешно')
+      }
     } catch (error) {
       console.warn('Ошибка при отправке уведомления о входе:', error)
     }
@@ -170,11 +178,15 @@ export const botApi = {
     const message = formatUserMessage(user, 'Выход', deviceInfo)
     
     try {
-      await sendTelegramRequest('sendMessage', {
+      const result = await sendTelegramRequest('sendMessage', {
         chat_id: user.id,
         text: message,
         parse_mode: 'HTML'
       })
+      
+      if (result) {
+        console.debug('Уведомление о выходе отправлено успешно')
+      }
     } catch (error) {
       console.warn('Ошибка при отправке уведомления о выходе:', error)
     }
