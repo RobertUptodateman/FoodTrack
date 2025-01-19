@@ -4,15 +4,7 @@
       <div v-if="loading" class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Загрузка...</span>
       </div>
-      <div :id="`telegram-login-${botConfig.botName}`">
-        <script async src="https://telegram.org/js/telegram-widget.js" 
-          :data-telegram-login="botConfig.botName"
-          :data-size="botConfig.size"
-          :data-radius="botConfig.radius"
-          data-onauth="window.onTelegramAuth(user)"
-          data-request-access="write">
-        </script>
-      </div>
+      <div :id="`telegram-login-${botConfig.botName}`"></div>
       <div v-if="error" class="mt-2 text-danger text-center">
         {{ error }}
       </div>
@@ -34,8 +26,8 @@ const error = ref(null)
 const debug = ref(null)
 const loading = ref(false)
 
-// Функция для обработки авторизации через Telegram
-function onTelegramAuth(user) {
+// Глобальная функция для обработки авторизации через Telegram
+window.onTelegramAuth = (user) => {
   loading.value = true
   debug.value = 'Получены данные от Telegram: ' + JSON.stringify(user)
   console.log('Telegram auth data:', user)
@@ -50,26 +42,13 @@ function onTelegramAuth(user) {
     // Сохраняем данные пользователя в куки на 7 дней
     Cookies.set('user', JSON.stringify(user), { expires: 7, path: '/' })
     debug.value = 'Данные сохранены в куки'
-    console.log('User data saved to cookies')
     
-    // Проверяем, что данные сохранились
-    const savedUser = Cookies.get('user')
-    if (savedUser) {
-      debug.value = 'Данные успешно прочитаны из куков'
-      console.log('Saved user data:', savedUser)
-      
-      // Добавляем небольшую задержку перед редиректом
-      setTimeout(() => {
-        debug.value = 'Переходим на страницу купона...'
-        router.push('/coupon')
-      }, 1000)
-    } else {
-      error.value = 'Ошибка: данные не сохранились в куки'
-      loading.value = false
-    }
+    // Перенаправляем на страницу купонов
+    router.push('/coupon')
   } catch (e) {
+    error.value = 'Ошибка при обработке данных: ' + e.message
     console.error('Auth error:', e)
-    error.value = 'Ошибка при сохранении данных: ' + e.message
+  } finally {
     loading.value = false
   }
 }
@@ -80,22 +59,32 @@ onMounted(() => {
   console.log('Checking saved user:', savedUser)
   
   if (savedUser) {
-    try {
-      debug.value = 'Найден сохраненный пользователь'
-      console.log('Found saved user, redirecting to coupon')
-      router.push('/coupon')
-      return
-    } catch (e) {
-      console.error('Error with saved user:', e)
-      Cookies.remove('user', { path: '/' })
-    }
+    router.push('/coupon')
+    return
   }
 
-  // Добавляем обработчик в глобальную область
-  window.onTelegramAuth = onTelegramAuth
+  // Создаем и добавляем скрипт Telegram
+  const script = document.createElement('script')
+  script.async = true
+  script.src = 'https://telegram.org/js/telegram-widget.js'
+  script.setAttribute('data-telegram-login', botConfig.botName)
+  script.setAttribute('data-size', botConfig.size)
+  script.setAttribute('data-radius', botConfig.radius)
+  script.setAttribute('data-onauth', 'onTelegramAuth(user)')
+  script.setAttribute('data-request-access', 'write')
+  
+  // Добавляем скрипт в контейнер
+  const container = document.getElementById(`telegram-login-${botConfig.botName}`)
+  if (container) {
+    container.appendChild(script)
+  } else {
+    console.error('Container for Telegram login not found')
+    error.value = 'Ошибка инициализации виджета авторизации'
+  }
 })
 
 onUnmounted(() => {
-  window.onTelegramAuth = null
+  // Удаляем глобальную функцию при размонтировании компонента
+  delete window.onTelegramAuth
 })
 </script>
