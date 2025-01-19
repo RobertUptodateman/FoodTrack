@@ -8,23 +8,43 @@
           <h1 class="h3 ms-2 mb-0 mt-auto">FoodTrack</h1>
         </div>
         <p class="text-muted mb-0 ms-3 mt-auto">Карман с купонами</p>
-        <button type="button" class="btn btn-primary" @click="handleLogout">выход</button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          @click="handleLogout" 
+          :disabled="isLoggingOut"
+        >
+          <span v-if="isLoggingOut" class="spinner-border spinner-border-sm me-1" role="status"></span>
+          {{ isLoggingOut ? 'Выход...' : 'Выход' }}
+        </button>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { sessionStore } from '../store/session'
 
 const router = useRouter()
+const isLoggingOut = ref(false)
 
-const handleLogout = () => {
-  sessionStore.endSession()
-  router.push('/auth')
+const handleLogout = async () => {
+  isLoggingOut.value = true
+  try {
+    await sessionStore.endSession()
+    router.push('/auth')
+  } catch (error) {
+    console.error('Ошибка при выходе:', error)
+  } finally {
+    isLoggingOut.value = false
+  }
 }
 </script>
 
 <style scoped>
+.btn-primary {
+  min-width: 100px;
+}
 </style>
