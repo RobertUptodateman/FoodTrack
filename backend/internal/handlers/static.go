@@ -1,55 +1,45 @@
 package handlers
 
 import (
-    "html/template"
-    "net/http"
-    "path/filepath"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // StaticHandler обрабатывает статические файлы
 type StaticHandler struct {
-    StaticDir string
+	staticPath string
 }
 
 // NewStaticHandler создает новый обработчик статических файлов
-func NewStaticHandler(dir string) *StaticHandler {
-    return &StaticHandler{
-        StaticDir: dir,
-    }
+func NewStaticHandler(defaultPath string) *StaticHandler {
+	path := os.Getenv("PATH_TO_STATIC")
+	if path == "" {
+		path = defaultPath
+	}
+	
+	// Проверяем существование директории
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Printf("Внимание: директория %s не существует\n", path)
+	}
+	
+	return &StaticHandler{
+		staticPath: path,
+	}
 }
 
-// loadTemplates загружает шаблоны из директории templates
-func (h *StaticHandler) loadTemplates() (*template.Template, error) {
-    return template.ParseGlob(filepath.Join(h.StaticDir, "templates/*.html"))
-}
-
-// ServeFavicon обрабатывает запрос favicon.ico
-func (h *StaticHandler) ServeFavicon(w http.ResponseWriter, r *http.Request) {
-    http.ServeFile(w, r, filepath.Join(h.StaticDir, "media/favicon.ico"))
-}
-
-// ServeHome обрабатывает запрос главной страницы
-func (h *StaticHandler) ServeHome(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != "/" {
-        http.NotFound(w, r)
-        return
-    }
-
-    tmpl, err := h.loadTemplates()
-    if err != nil {
-        http.Error(w, "Ошибка загрузки шаблона", http.StatusInternalServerError)
-        return
-    }
-
-    session, _ := store.Get(r, "session-name")
-    userID, _ := session.Values["user_id"].(int64)
-
-    data := map[string]interface{}{
-        "UserID": userID,
-    }
-
-    if err := tmpl.ExecuteTemplate(w, "index.html", data); err != nil {
-        http.Error(w, "Ошибка рендеринга шаблона", http.StatusInternalServerError)
-        return
-    }
+// ServeHTTP обрабатывает HTTP запросы к статическим файлам
+func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Получаем путь к файлу
+	path := filepath.Join(h.staticPath, r.URL.Path)
+	
+	// Проверяем существование файла
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		http.NotFound(w, r)
+		return
+	}
+	
+	// Отдаем файл
+	http.ServeFile(w, r, path)
 }
