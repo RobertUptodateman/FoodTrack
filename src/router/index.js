@@ -1,13 +1,12 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import AuthPage from '../components/AuthPage.vue'
-import Coupon from '../components/Coupon.vue'
 import { sessionStore } from '../store/session'
 
+// Используем динамический импорт для ленивой загрузки компонентов
 const routes = [
   {
     path: '/auth',
     name: 'auth',
-    component: AuthPage
+    component: () => import(/* webpackChunkName: "auth" */ '../components/AuthPage.vue')
   },
   {
     path: '/',
@@ -16,7 +15,7 @@ const routes = [
   {
     path: '/coupon',
     name: 'coupon',
-    component: Coupon,
+    component: () => import(/* webpackChunkName: "coupon" */ '../components/Coupon.vue'),
     meta: { requiresAuth: true }
   }
 ]
@@ -28,16 +27,21 @@ const router = createRouter({
 
 // Защита роутов
 router.beforeEach((to, from, next) => {
+  // Предзагрузка компонента следующей страницы
+  if (to.matched.length > 0) {
+    const component = to.matched[0].components.default
+    if (typeof component === 'function') {
+      component() // Запускаем загрузку компонента
+    }
+  }
+
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    // Проверяем наличие активной сессии
     if (!sessionStore.hasValidSession()) {
       next({ name: 'auth' })
     } else {
       next()
     }
   } else {
-    // Если пользователь авторизован и пытается зайти на страницу авторизации,
-    // перенаправляем его на страницу купона
     if (to.name === 'auth' && sessionStore.hasValidSession()) {
       next({ name: 'coupon' })
     } else {
