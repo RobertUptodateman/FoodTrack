@@ -11,8 +11,8 @@ const BOT_COMMANDS = {
 
 // Получаем токен из переменных окружения или конфигурации
 function getBotToken() {
-  // Используем import.meta.env вместо process.env для клиентской части
-  const token = import.meta.env.VUE_APP_TELEGRAM_BOT_TOKEN || import.meta.env.VITE_TELEGRAM_BOT_TOKEN
+  // В Vite.js все переменные окружения должны начинаться с VITE_
+  const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN
   if (!token) {
     console.error('Токен бота не найден в переменных окружения')
     return null
