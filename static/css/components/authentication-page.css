@@ -1,1 +1,8 @@
 /* Стили страницы аутентификации */
+.auth-title::after {
+  content: var(--auth-title);
+}
+
+.auth-button::after {
+  content: var(--auth-button);
+}
