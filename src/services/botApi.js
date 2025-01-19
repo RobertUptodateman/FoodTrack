@@ -1,7 +1,13 @@
 // Конфигурация бота
-const BOT_TOKEN = '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
+
+// Получаем токен из переменных окружения или конфигурации
+function getBotToken() {
+  // В продакшене токен должен браться из переменных окружения
+  // Для разработки используем тестовый токен
+  return process.env.VUE_APP_TELEGRAM_BOT_TOKEN || '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
+}
 
 /**
  * Форматирует дату и время в человекочитаемый формат
@@ -79,11 +85,17 @@ function getDeviceInfo() {
  * @returns {Promise<Response>}
  */
 async function sendTelegramRequest(method, params) {
+  const token = getBotToken()
+  if (!token) {
+    console.error('Токен бота не настроен')
+    return null
+  }
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
 
   try {
-    const response = await fetch(`${TELEGRAM_API}${BOT_TOKEN}/${method}`, {
+    const response = await fetch(`${TELEGRAM_API}${token}/${method}`, {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -92,12 +104,19 @@ async function sendTelegramRequest(method, params) {
       body: JSON.stringify(params)
     })
     
+    const data = await response.json()
+    
     if (!response.ok) {
-      console.warn(`Telegram API вернул статус ${response.status}:`, await response.text())
+      console.warn(`Telegram API вернул ошибку:`, data)
       return null
     }
     
-    return response
+    if (!data.ok) {
+      console.warn('Telegram API вернул ошибку в ответе:', data.description)
+      return null
+    }
+    
+    return data
   } catch (error) {
     if (error.name === 'AbortError') {
       console.warn('Таймаут запроса к Telegram API')
@@ -117,16 +136,23 @@ export const botApi = {
    * @returns {Promise<void>}
    */
   async notifySessionStart(user) {
-    if (!user || !user.id) return
+    if (!user || !user.id) {
+      console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
+      return
+    }
 
     const deviceInfo = getDeviceInfo()
     const message = formatUserMessage(user, 'Вход', deviceInfo)
     
-    await sendTelegramRequest('sendMessage', {
-      chat_id: user.id,
-      text: message,
-      parse_mode: 'HTML'
-    })
+    try {
+      await sendTelegramRequest('sendMessage', {
+        chat_id: user.id,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    } catch (error) {
+      console.warn('Ошибка при отправке уведомления о входе:', error)
+    }
   },
 
   /**
@@ -135,15 +161,22 @@ export const botApi = {
    * @returns {Promise<void>}
    */
   async notifySessionEnd(user) {
-    if (!user || !user.id) return
+    if (!user || !user.id) {
+      console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
+      return
+    }
 
     const deviceInfo = getDeviceInfo()
     const message = formatUserMessage(user, 'Выход', deviceInfo)
     
-    await sendTelegramRequest('sendMessage', {
-      chat_id: user.id,
-      text: message,
-      parse_mode: 'HTML'
-    })
+    try {
+      await sendTelegramRequest('sendMessage', {
+        chat_id: user.id,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    } catch (error) {
+      console.warn('Ошибка при отправке уведомления о выходе:', error)
+    }
   }
 }
