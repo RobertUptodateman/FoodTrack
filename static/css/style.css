@@ -1,9 +1,0 @@
-/* Основные стили */
-
-/* Импорт настроек */
-@import url("/static/css/settings/variables.css");
-@import url("/static/css/settings/color.css");
-@import url("/static/css/settings/typography.css");
-
-/* Импорт компонентов */
-@import url("/static/css/components/authentication-page.css");
