@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="auth">
     <TelegramLogin />
   </div>
 </template>
@@ -9,7 +9,7 @@ import TelegramLogin from './TelegramLogin.vue'
 </script>
 
 <style scoped>
-.home {
+.auth {
   display: flex;
   justify-content: center;
   align-items: center;

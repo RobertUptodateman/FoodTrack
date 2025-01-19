@@ -1,12 +1,12 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import HomePage from '../components/HomePage.vue'
+import AuthPage from '../components/AuthPage.vue'
 import Coupon from '../components/Coupon.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomePage
+    name: 'auth',
+    component: AuthPage
   },
   {
     path: '/coupon',
