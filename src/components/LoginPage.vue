@@ -1,20 +1,32 @@
 <template>
-  <router-view></router-view>
+  <div class="container min-vh-100 d-flex justify-content-center align-items-center">
+    <div class="d-flex flex-column gap-2 align-items-center">
+      <div id="telegram-login" ref="telegramLoginRef"></div>
+      <div v-if="error" class="mt-2 text-danger text-center">
+        {{ error }}
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import Cookies from 'js-cookie'
 
-const user = ref(null)
+const router = useRouter()
 const error = ref(null)
 const telegramLoginRef = ref(null)
 
 // Глобальная функция для обработки авторизации через Telegram
 window.onTelegramAuth = (telegramUser) => {
-  user.value = telegramUser
   error.value = null
-  // Здесь можно сохранить пользователя в localStorage или Pinia store
-  localStorage.setItem('telegramUser', JSON.stringify(telegramUser))
+  
+  // Сохраняем данные пользователя в куки на 7 дней
+  Cookies.set('user', JSON.stringify(telegramUser), { expires: 7 })
+  
+  // Перенаправляем на страницу с купоном
+  router.push('/coupon')
 }
 
 onMounted(() => {
@@ -40,21 +52,4 @@ onMounted(() => {
   script.setAttribute('data-request-access', 'write')
   telegramLoginRef.value.appendChild(script)
 })
-
-// Проверяем, есть ли сохраненный пользователь
-const savedUser = localStorage.getItem('telegramUser')
-if (savedUser) {
-  try {
-    user.value = JSON.parse(savedUser)
-  } catch (e) {
-    localStorage.removeItem('telegramUser')
-  }
-}
 </script>
-
-<style>
-#app {
-  width: 100%;
-  min-height: 100vh;
-}
-</style>
