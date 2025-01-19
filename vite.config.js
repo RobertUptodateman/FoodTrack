@@ -7,6 +7,10 @@ export default defineConfig({
   base: '/FoodTrack/',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+  },
+  server: {
+    port: 5173,
+    host: true
   }
 })
