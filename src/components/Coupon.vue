@@ -1,12 +1,12 @@
-&lt;template&gt;
-  &lt;div class="coupon"&gt;
-    &lt;div class="coupon-content"&gt;
+<template>
+  <div class="coupon">
+    <div class="coupon-content">
       <!-- Пустой купон -->
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/template&gt;
+    </div>
+  </div>
+</template>
 
-&lt;style scoped&gt;
+<style scoped>
 .coupon {
   padding: 2rem;
   background-color: #fff;
@@ -18,4 +18,4 @@
 .coupon-content {
   min-height: 200px;
 }
-&lt;/style&gt;
+</style>

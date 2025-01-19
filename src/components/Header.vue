@@ -1,15 +1,15 @@
-&lt;template&gt;
-  &lt;header class="header"&gt;
-    &lt;div class="container"&gt;
+<template>
+  <header class="header">
+    <div class="container">
       это хедер
-    &lt;/div&gt;
-  &lt;/header&gt;
-&lt;/template&gt;
+    </div>
+  </header>
+</template>
 
-&lt;style scoped&gt;
+<style scoped>
 .header {
   padding: 1rem 0;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
 }
-&lt;/style&gt;
+</style>

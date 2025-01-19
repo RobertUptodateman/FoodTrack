@@ -1,16 +1,16 @@
-&lt;template&gt;
-  &lt;footer class="footer"&gt;
-    &lt;div class="container"&gt;
+<template>
+  <footer class="footer">
+    <div class="container">
       это футер
-    &lt;/div&gt;
-  &lt;/footer&gt;
-&lt;/template&gt;
+    </div>
+  </footer>
+</template>
 
-&lt;style scoped&gt;
+<style scoped>
 .footer {
   padding: 1rem 0;
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
   margin-top: auto;
 }
-&lt;/style&gt;
+</style>
