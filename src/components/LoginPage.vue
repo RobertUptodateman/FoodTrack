@@ -4,11 +4,11 @@
       <div v-if="loading" class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Загрузка...</span>
       </div>
-      <div id="telegram-login-foodtrack_auth_bot">
+      <div :id="`telegram-login-${botConfig.botName}`">
         <script async src="https://telegram.org/js/telegram-widget.js" 
-          data-telegram-login="foodtrack_auth_bot"
-          data-size="large"
-          data-radius="8"
+          :data-telegram-login="botConfig.botName"
+          :data-size="botConfig.size"
+          :data-radius="botConfig.radius"
           data-onauth="window.onTelegramAuth(user)"
           data-request-access="write">
         </script>
@@ -27,6 +27,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Cookies from 'js-cookie'
+import { botConfig } from '../config.js'
 
 const router = useRouter()
 const error = ref(null)

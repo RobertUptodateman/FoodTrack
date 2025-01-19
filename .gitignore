@@ -79,3 +79,6 @@ coverage
 # Cypress
 /cypress/videos/
 /cypress/screenshots/
+
+# Bot configuration
+bot-config.txt

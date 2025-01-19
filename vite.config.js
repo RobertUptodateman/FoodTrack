@@ -5,6 +5,11 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   base: '/FoodTrack/',
+  server: {
+    port: 8080,
+    strictPort: true,
+    host: true
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
