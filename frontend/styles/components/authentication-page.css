@@ -6,3 +6,7 @@
 .auth-button::after {
   content: var(--auth-button);
 }
+
+.auth-success::after {
+  content: var(--auth-success);
+}
