@@ -1,7 +1,10 @@
 <template>
   <div class="telegram-login">
     <div v-if="error" class="error-message">
-      {{ error }}
+      <div class="error-title">{{ error }}</div>
+      <div v-if="errorDetails" class="error-details">
+        {{ errorDetails }}
+      </div>
     </div>
     <div v-if="isLoading" class="loading-indicator">
       <span class="spinner"></span>
@@ -21,19 +24,45 @@ const router = useRouter()
 const telegramLoginContainer = ref(null)
 const isLoading = ref(true)
 const error = ref(null)
+const errorDetails = ref(null)
 let scriptElement = null
 let scriptLoadPromise = null
+
+// Функция для установки ошибки с деталями
+function setError(message, details = null) {
+  error.value = message
+  errorDetails.value = details
+  isLoading.value = false
+}
 
 // Локальная функция обработчика авторизации
 async function handleTelegramAuth(user) {
   try {
+    console.log('Получены данные пользователя:', user)
+    
+    if (!user || !user.id) {
+      setError('Ошибка авторизации', 'Не удалось получить данные пользователя')
+      return
+    }
+
+    // Проверяем доступность бота перед авторизацией
+    const botAvailable = await botApi.checkBot()
+    if (!botAvailable) {
+      setError(
+        'Сервис уведомлений временно недоступен', 
+        'Пожалуйста, убедитесь что вы:\n1. Начали диалог с ботом @goods_track_bot\n2. Отправили команду /start\n3. Не заблокировали бота'
+      )
+      return
+    }
+
     await sessionStore.startSession(user)
     router.push('/coupon')
   } catch (error) {
     console.error('Ошибка при авторизации:', error)
-    error.value = 'Ошибка при авторизации. Пожалуйста, попробуйте позже.'
-  } finally {
-    isLoading.value = false
+    setError(
+      'Ошибка при авторизации',
+      'Пожалуйста, попробуйте позже или обратитесь в поддержку'
+    )
   }
 }
 
@@ -64,15 +93,20 @@ function loadTelegramScript() {
 
     // Обработчики загрузки
     scriptElement.onload = () => {
+      console.log('Виджет Telegram успешно загружен')
       isLoading.value = false
       resolve()
     }
     
     scriptElement.onerror = () => {
-      isLoading.value = false
-      error.value = 'Не удалось загрузить виджет Telegram. Пожалуйста, проверьте подключение к интернету.'
+      const errorMsg = 'Не удалось загрузить виджет Telegram'
+      console.error(errorMsg)
+      setError(
+        errorMsg,
+        'Пожалуйста, проверьте подключение к интернету и обновите страницу'
+      )
       scriptLoadPromise = null
-      reject(new Error('Не удалось загрузить виджет Telegram'))
+      reject(new Error(errorMsg))
     }
 
     // Таймаут загрузки
@@ -91,12 +125,18 @@ function loadTelegramScript() {
 onMounted(async () => {
   try {
     // Проверяем доступность бота
+    console.log('Проверка доступности бота...')
     const botAvailable = await botApi.checkBot()
+    
     if (!botAvailable) {
-      error.value = 'Бот временно недоступен. Пожалуйста, попробуйте позже.'
-      isLoading.value = false
+      setError(
+        'Сервис уведомлений временно недоступен',
+        'Пожалуйста, убедитесь что вы:\n1. Начали диалог с ботом @goods_track_bot\n2. Отправили команду /start\n3. Не заблокировали бота'
+      )
       return
     }
+
+    console.log('Бот доступен, настраиваем виджет входа...')
 
     // Устанавливаем обработчик до загрузки скрипта
     window.onTelegramAuth = handleTelegramAuth
@@ -104,8 +144,10 @@ onMounted(async () => {
     await loadTelegramScript()
   } catch (err) {
     console.error('Ошибка при инициализации:', err)
-    error.value = 'Произошла ошибка при загрузке. Пожалуйста, обновите страницу.'
-    isLoading.value = false
+    setError(
+      'Произошла ошибка при загрузке',
+      'Пожалуйста, обновите страницу или попробуйте позже'
+    )
   }
 })
 
@@ -134,12 +176,22 @@ onUnmounted(() => {
 
 .error-message {
   text-align: center;
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
   color: #721c24;
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
   border-radius: 4px;
+}
+
+.error-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.error-details {
+  font-size: 0.9em;
+  white-space: pre-line;
 }
 
 .spinner {
