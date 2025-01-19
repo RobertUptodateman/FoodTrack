@@ -33,13 +33,20 @@ func Setup(staticHandler *handlers.StaticHandler) {
 	})
 
 	// Обработчик для favicon.ico без кэширования
-	http.HandleFunc("/favicon.ico", middleware.NoCache(http.HandlerFunc(staticHandler.ServeFavicon)).ServeHTTP)
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Запрос favicon.ico")
+		middleware.NoCache(http.HandlerFunc(staticHandler.ServeFavicon)).ServeHTTP(w, r)
+	})
 
 	// Авторизация через Telegram
 	http.HandleFunc("/auth/telegram/callback", middleware.NoCache(http.HandlerFunc(handlers.TelegramAuthCallback)).ServeHTTP)
 
 	// Главная страница без кэширования
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		log.Printf("Запрос к главной странице: %s", r.URL.Path)
 		middleware.NoCache(http.HandlerFunc(staticHandler.ServeHome)).ServeHTTP(w, r)
 	})
