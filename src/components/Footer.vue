@@ -1,5 +1,5 @@
 <template>
-  <footer class="footer">
+  <footer class="sticky-bottom bg-light border-top">
     <div class="container">
       это футер
     </div>

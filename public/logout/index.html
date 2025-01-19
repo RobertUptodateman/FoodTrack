@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Logout</title>
+</head>
+<body>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (userId) {
+      // Загружаем токен бота
+      fetch('/bot-config.txt')
+        .then(response => response.text())
+        .then(token => {
+          // Отправляем уведомление
+          return fetch(`https://api.telegram.org/bot${token.trim()}/sendMessage`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: userId,
+              text: 'Выполнен выход из системы'
+            })
+          });
+        })
+        .catch(error => console.error('Ошибка при отправке уведомления:', error));
+    }
+  </script>
+</body>
+</html>
