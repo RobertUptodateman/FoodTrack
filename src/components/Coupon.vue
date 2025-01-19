@@ -1,15 +1,10 @@
 <template>
   <div class="coupon">
-    <TelegramLogin />
     <div class="coupon-content">
       <!-- Пустой купон -->
     </div>
   </div>
 </template>
-
-<script setup>
-import TelegramLogin from './TelegramLogin.vue'
-</script>
 
 <style scoped>
 .coupon {

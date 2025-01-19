@@ -3,7 +3,7 @@
     <Header />
     <main class="main">
       <div class="container">
-        <Coupon />
+        <router-view></router-view>
       </div>
     </main>
     <Footer />
@@ -13,7 +13,6 @@
 <script setup>
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
-import Coupon from './components/Coupon.vue'
 </script>
 
 <style>

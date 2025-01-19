@@ -13,7 +13,7 @@ onMounted(() => {
   script.src = 'https://telegram.org/js/telegram-widget.js?22'
   script.setAttribute('data-telegram-login', 'goods_track_bot')
   script.setAttribute('data-size', 'small')
-  script.setAttribute('data-auth-url', 'https://robertuptodateman.github.io/FoodTrack/#/')
+  script.setAttribute('data-auth-url', 'https://robertuptodateman.github.io/FoodTrack/#/coupon')
   script.setAttribute('data-request-access', 'write')
   
   // Удаляем старый виджет, если он есть
