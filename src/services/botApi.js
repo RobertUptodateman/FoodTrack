@@ -1,4 +1,6 @@
-const BOT_API_URL = 'https://robertuptodateman.github.io/FoodTrack/api/bot'
+// Конфигурация бота
+const BOT_TOKEN = '6883937698:AAGBxA_RZkAYPNxRWwNTqXYxZYGPDWwrwBg'
+const TELEGRAM_API = 'https://api.telegram.org/bot'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
 
 /**
@@ -28,10 +30,10 @@ function formatUserMessage(user, action, deviceInfo) {
   const time = formatDateTime(new Date())
   const name = user.first_name || user.username || 'Пользователь'
   
-  return ` ${action} в систему
- ${name}
- ${time}
- ${deviceInfo}`
+  return `🔔 ${action} в систему
+👤 ${name}
+🕒 ${time}
+💻 ${deviceInfo}`
 }
 
 /**
@@ -71,38 +73,36 @@ function getDeviceInfo() {
 }
 
 /**
- * Отправляет запрос с таймаутом
- * @param {string} url - URL для запроса
- * @param {Object} data - Данные для отправки
+ * Отправляет запрос к Telegram Bot API с таймаутом
+ * @param {string} method - Метод API
+ * @param {Object} params - Параметры запроса
  * @returns {Promise<Response>}
  */
-async function fetchWithTimeout(url, data) {
+async function sendTelegramRequest(method, params) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
 
   try {
-    const response = await fetch(url, {
-      method: 'GET', // Используем GET вместо POST для GitHub Pages
+    const response = await fetch(`${TELEGRAM_API}${BOT_TOKEN}/${method}`, {
+      method: 'POST',
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      // Передаем данные через URL параметры
-      credentials: 'omit' // Отключаем передачу куки
+      body: JSON.stringify(params)
     })
     
     if (!response.ok) {
-      // Игнорируем ошибки API, просто логируем их
-      console.warn(`API вернул статус ${response.status}:`, await response.text())
+      console.warn(`Telegram API вернул статус ${response.status}:`, await response.text())
       return null
     }
     
     return response
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.warn('Таймаут запроса к API')
+      console.warn('Таймаут запроса к Telegram API')
     } else {
-      console.warn('Ошибка запроса к API:', error)
+      console.warn('Ошибка запроса к Telegram API:', error)
     }
     return null
   } finally {
@@ -110,58 +110,40 @@ async function fetchWithTimeout(url, data) {
   }
 }
 
-/**
- * Кодирует объект в строку для URL
- * @param {Object} params - Параметры для кодирования
- * @returns {string} Закодированная строка параметров
- */
-function encodeParams(params) {
-  return Object.entries(params)
-    .map(([key, value]) => {
-      if (typeof value === 'object') {
-        value = JSON.stringify(value)
-      }
-      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-    })
-    .join('&')
-}
-
 export const botApi = {
   /**
-   * Отправляет уведомление боту и пользователю о начале сессии
+   * Отправляет уведомление пользователю о начале сессии
    * @param {Object} user - Данные пользователя Telegram
    * @returns {Promise<void>}
    */
   async notifySessionStart(user) {
-    const params = {
-      userId: user.id,
-      username: user.username,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      timestamp: new Date().toISOString(),
-      deviceInfo: getDeviceInfo(),
-      type: 'session_start'
-    }
+    if (!user || !user.id) return
 
-    await fetchWithTimeout(`${BOT_API_URL}/notify?${encodeParams(params)}`)
+    const deviceInfo = getDeviceInfo()
+    const message = formatUserMessage(user, 'Вход', deviceInfo)
+    
+    await sendTelegramRequest('sendMessage', {
+      chat_id: user.id,
+      text: message,
+      parse_mode: 'HTML'
+    })
   },
 
   /**
-   * Отправляет уведомление боту и пользователю о завершении сессии
+   * Отправляет уведомление пользователю о завершении сессии
    * @param {Object} user - Данные пользователя Telegram
    * @returns {Promise<void>}
    */
   async notifySessionEnd(user) {
-    const params = {
-      userId: user.id,
-      username: user.username,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      timestamp: new Date().toISOString(),
-      deviceInfo: getDeviceInfo(),
-      type: 'session_end'
-    }
+    if (!user || !user.id) return
 
-    await fetchWithTimeout(`${BOT_API_URL}/notify?${encodeParams(params)}`)
+    const deviceInfo = getDeviceInfo()
+    const message = formatUserMessage(user, 'Выход', deviceInfo)
+    
+    await sendTelegramRequest('sendMessage', {
+      chat_id: user.id,
+      text: message,
+      parse_mode: 'HTML'
+    })
   }
 }
