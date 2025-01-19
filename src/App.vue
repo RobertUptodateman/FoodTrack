@@ -10,10 +10,12 @@
     <template v-else>
       <router-view></router-view>
     </template>
+    <CookieConsent />
   </div>
 </template>
 
 <script setup>
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import CookieConsent from './components/CookieConsent.vue'
 </script>
