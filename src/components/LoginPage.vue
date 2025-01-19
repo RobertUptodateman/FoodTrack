@@ -26,8 +26,7 @@ const debug = ref(null)
 const loading = ref(false)
 const telegramLoginRef = ref(null)
 
-// Функция для обработки авторизации через Telegram
-const handleTelegramAuth = (user) => {
+function onTelegramAuth(user) {
   loading.value = true
   debug.value = 'Получены данные от Telegram: ' + JSON.stringify(user)
   console.log('Telegram auth data:', user)
@@ -84,7 +83,7 @@ onMounted(() => {
   }
 
   // Добавляем обработчик в глобальную область
-  window.onTelegramAuth = handleTelegramAuth
+  window.onTelegramAuth = onTelegramAuth
 
   try {
     // Создаем и добавляем скрипт для виджета Telegram
@@ -93,7 +92,7 @@ onMounted(() => {
     script.src = 'https://telegram.org/js/telegram-widget.js'
     script.setAttribute('data-telegram-login', 'foodtrack_auth_bot')
     script.setAttribute('data-size', 'large')
-    script.setAttribute('data-onauth', 'onTelegramAuth')
+    script.setAttribute('data-onauth', 'window.onTelegramAuth')
     script.setAttribute('data-request-access', 'write')
     script.setAttribute('data-lang', 'ru')
     script.setAttribute('data-radius', '8')
