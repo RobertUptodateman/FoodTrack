@@ -4,7 +4,15 @@
       <div v-if="loading" class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Загрузка...</span>
       </div>
-      <div id="telegram-login" ref="telegramLoginRef"></div>
+      <div id="telegram-login-foodtrack_auth_bot">
+        <script async src="https://telegram.org/js/telegram-widget.js" 
+          data-telegram-login="foodtrack_auth_bot"
+          data-size="large"
+          data-radius="8"
+          data-onauth="window.onTelegramAuth(user)"
+          data-request-access="write">
+        </script>
+      </div>
       <div v-if="error" class="mt-2 text-danger text-center">
         {{ error }}
       </div>
@@ -24,8 +32,8 @@ const router = useRouter()
 const error = ref(null)
 const debug = ref(null)
 const loading = ref(false)
-const telegramLoginRef = ref(null)
 
+// Функция для обработки авторизации через Telegram
 function onTelegramAuth(user) {
   loading.value = true
   debug.value = 'Получены данные от Telegram: ' + JSON.stringify(user)
@@ -84,30 +92,6 @@ onMounted(() => {
 
   // Добавляем обработчик в глобальную область
   window.onTelegramAuth = onTelegramAuth
-
-  try {
-    // Создаем и добавляем скрипт для виджета Telegram
-    const script = document.createElement('script')
-    script.async = true
-    script.src = 'https://telegram.org/js/telegram-widget.js'
-    script.setAttribute('data-telegram-login', 'foodtrack_auth_bot')
-    script.setAttribute('data-size', 'large')
-    script.setAttribute('data-onauth', 'window.onTelegramAuth')
-    script.setAttribute('data-request-access', 'write')
-    script.setAttribute('data-lang', 'ru')
-    script.setAttribute('data-radius', '8')
-    
-    const container = telegramLoginRef.value
-    if (container) {
-      container.innerHTML = ''
-      container.appendChild(script)
-      debug.value = 'Виджет Telegram загружен'
-      console.log('Telegram widget loaded')
-    }
-  } catch (e) {
-    console.error('Widget error:', e)
-    error.value = 'Ошибка при загрузке виджета: ' + e.message
-  }
 })
 
 onUnmounted(() => {
