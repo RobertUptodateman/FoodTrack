@@ -104,6 +104,26 @@ async function sendStartMessage(chatId) {
 }
 
 /**
+ * Отправляет приветственное сообщение в чат
+ * @param {number} chatId - ID чата пользователя
+ * @returns {Promise<boolean>}
+ */
+async function sendWelcomeMessage(chatId) {
+  try {
+    const result = await sendTelegramRequest('sendMessage', {
+      chat_id: chatId,
+      text: '<b>Диалог начат</b>\nТеперь вы можете войти через Telegram на сайте.',
+      parse_mode: 'HTML'
+    })
+
+    return result && result.ok
+  } catch (error) {
+    console.error('Ошибка при отправке приветственного сообщения:', error)
+    return false
+  }
+}
+
+/**
  * Форматирует дату и время в человекочитаемый формат
  * @param {Date} date - Дата для форматирования
  * @returns {string} Отформатированная дата и время
@@ -202,6 +222,24 @@ async function checkUserChat(userId) {
     return false
   } catch (error) {
     console.error('Ошибка при проверке чата пользователя:', error)
+    return false
+  }
+}
+
+/**
+ * Обрабатывает входящие сообщения от Telegram
+ * @param {Object} update - Объект обновления от Telegram
+ * @returns {Promise<boolean>}
+ */
+async function handleUpdate(update) {
+  try {
+    // Проверяем, что это сообщение с командой /start
+    if (update.message && update.message.text === '/start') {
+      return await sendWelcomeMessage(update.message.chat.id)
+    }
+    return true
+  } catch (error) {
+    console.error('Ошибка при обработке обновления:', error)
     return false
   }
 }
@@ -348,6 +386,13 @@ export const botApi = {
    * @returns {Promise<boolean>}
    */
   sendStartMessage,
+
+  /**
+   * Обрабатывает входящие сообщения от Telegram
+   * @param {Object} update - Объект обновления от Telegram
+   * @returns {Promise<boolean>}
+   */
+  handleUpdate,
 
   /**
    * Отправляет уведомление пользователю о начале сессии
