@@ -1,12 +1,17 @@
 <template>
   <div class="app">
-    <Header />
-    <main class="main">
-      <div class="container">
-        <router-view></router-view>
-      </div>
-    </main>
-    <Footer />
+    <template v-if="$route.name !== 'auth'">
+      <Header />
+      <main class="main">
+        <div class="container">
+          <router-view></router-view>
+        </div>
+      </main>
+      <Footer />
+    </template>
+    <template v-else>
+      <router-view></router-view>
+    </template>
   </div>
 </template>
 

@@ -10,9 +10,11 @@ import TelegramLogin from './TelegramLogin.vue'
 
 <style scoped>
 .auth {
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 120px); /* Вычитаем высоту header и footer */
+  background-color: #fff;
 }
 </style>
