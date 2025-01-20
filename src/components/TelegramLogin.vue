@@ -45,7 +45,7 @@ async function handleTelegramAuth(user) {
       return
     }
 
-    // Проверяем доступность бота и наличие диалога с пользователем
+    // Проверяем доступность бота и наличие команды /start
     const botAvailable = await botApi.checkBot(user.id)
     if (!botAvailable) {
       setError(

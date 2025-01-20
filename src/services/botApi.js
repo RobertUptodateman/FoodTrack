@@ -1,17 +1,18 @@
 // Конфигурация бота
 const TELEGRAM_API = 'https://api.telegram.org'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
+const POLLING_INTERVAL = 1000 // Интервал опроса в миллисекундах
 
 // Команды бота
 const BOT_COMMANDS = {
   START: '/start',
+  STOP: '/stop',
   HELP: '/help',
   SETTINGS: '/settings'
 }
 
 // Получаем токен из переменных окружения или конфигурации
 function getBotToken() {
-  // В Vite.js все переменные окружения должны начинаться с VITE_
   const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN
   if (!token) {
     console.error('Токен бота не найден в переменных окружения')
@@ -39,79 +40,233 @@ async function checkBotStatus() {
 }
 
 /**
- * Устанавливает команды бота и настраивает webhook
- * @returns {Promise<boolean>}
- */
-async function setCommands() {
-  const commands = [
-    {
-      command: 'start',
-      description: 'Начать диалог с ботом'
-    },
-    {
-      command: 'help',
-      description: 'Показать справку'
-    },
-    {
-      command: 'settings',
-      description: 'Настройки уведомлений'
-    }
-  ]
-
-  try {
-    // Устанавливаем команды
-    const result = await sendTelegramRequest('setMyCommands', {
-      commands: commands
-    })
-
-    // Отправляем приветственное сообщение при команде /start
-    // Для этого используем метод answerCallbackQuery
-    if (result && result.ok) {
-      console.debug('Команды бота успешно установлены')
-      return true
-    }
-
-    return false
-  } catch (error) {
-    console.error('Ошибка при установке команд бота:', error)
-    return false
-  }
-}
-
-/**
- * Отправляет приветственное сообщение в ответ на команду /start
+ * Отправляет сообщение с приветствием и ссылкой на авторизацию
  * @param {number} chatId - ID чата пользователя
  * @returns {Promise<boolean>}
  */
 async function sendStartMessage(chatId) {
-  if (!chatId) {
-    console.warn('Не указан ID чата для отправки приветственного сообщения')
-    return false
-  }
-
   const siteUrl = import.meta.env.VITE_SITE_URL || 'https://foodtrack.site'
   const loginUrl = `${siteUrl}/auth`
+
+  return await sendMessage(
+    chatId,
+    `<b>Вы подписаны!</b>\n\nДля продолжения работы войдите на сайт:\n<a href="${loginUrl}">Войти через Telegram</a>`,
+    { disable_web_page_preview: true }
+  )
+}
+
+/**
+ * Отправляет сообщение конкретному пользователю
+ * @param {number} chatId - ID чата пользователя
+ * @param {string} text - Текст сообщения
+ * @param {Object} options - Дополнительные параметры
+ * @returns {Promise<boolean>}
+ */
+async function sendMessage(chatId, text, options = {}) {
+  if (!chatId || !text) {
+    console.warn('Не указан ID чата или текст сообщения')
+    return false
+  }
 
   try {
     const result = await sendTelegramRequest('sendMessage', {
       chat_id: chatId,
-      text: `<b>Вы подписаны!</b>\n\nДля продолжения работы войдите на сайт:\n<a href="${loginUrl}">Войти через Telegram</a>`,
+      text: text,
       parse_mode: 'HTML',
-      disable_web_page_preview: true
+      ...options
     })
 
     return result && result.ok
   } catch (error) {
-    console.error('Ошибка при отправке приветственного сообщения:', error)
+    console.error('Ошибка при отправке сообщения:', error)
     return false
   }
 }
 
 /**
- * Форматирует дату и время в человекочитаемый формат
- * @param {Date} date - Дата для форматирования
- * @returns {string} Отформатированная дата и время
+ * Обрабатывает новые сообщения от пользователей
+ * @param {number} offset - Смещение для получения новых сообщений
+ * @returns {Promise<number>} Новое значение offset
  */
+async function handleUpdates(offset = 0) {
+  try {
+    const updates = await sendTelegramRequest('getUpdates', {
+      offset,
+      timeout: 30,
+      allowed_updates: ['message']
+    })
+
+    if (!updates || !updates.ok) {
+      console.warn('Не удалось получить обновления')
+      return offset
+    }
+
+    for (const update of updates.result) {
+      if (update.message && update.message.text) {
+        const chatId = update.message.chat.id
+        const text = update.message.text
+
+        switch (text) {
+          case BOT_COMMANDS.START:
+            await sendStartMessage(chatId)
+            break
+          case BOT_COMMANDS.STOP:
+            await sendMessage(chatId, 'Вы успешно отключили уведомления. Чтобы начать получать уведомления снова, отправьте команду /start')
+            break
+        }
+      }
+      // Обновляем offset для следующего запроса
+      offset = update.update_id + 1
+    }
+
+    return offset
+  } catch (error) {
+    console.error('Ошибка при обработке обновлений:', error)
+    return offset
+  }
+}
+
+/**
+ * Запускает длинный опрос для получения обновлений
+ */
+async function startPolling() {
+  let offset = 0
+  
+  while (true) {
+    try {
+      offset = await handleUpdates(offset)
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL))
+    } catch (error) {
+      console.error('Ошибка в цикле опроса:', error)
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL * 5))
+    }
+  }
+}
+
+/**
+ * Проверяет наличие команды /start в истории сообщений
+ * @param {number} userId - ID пользователя Telegram
+ * @returns {Promise<boolean>}
+ */
+async function checkStartCommand(userId) {
+  try {
+    const result = await sendTelegramRequest('getUpdates', {
+      offset: -1,
+      limit: 100
+    })
+
+    if (!result || !result.ok) {
+      console.warn('Не удалось получить историю сообщений')
+      return false
+    }
+
+    const hasStart = result.result.some(update => 
+      update.message && 
+      update.message.from && 
+      update.message.from.id === userId &&
+      update.message.text === '/start'
+    )
+
+    if (!hasStart) {
+      console.warn('Команда /start не найдена в истории сообщений')
+    }
+
+    return hasStart
+  } catch (error) {
+    console.error('Ошибка при проверке команды /start:', error)
+    return false
+  }
+}
+
+/**
+ * Отправляет запрос к Telegram Bot API с таймаутом
+ * @param {string} method - Метод API
+ * @param {Object} params - Параметры запроса
+ * @returns {Promise<Response>}
+ */
+async function sendTelegramRequest(method, params = {}) {
+  const token = getBotToken()
+  if (!token) {
+    throw new Error('Токен бота не найден')
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
+
+  try {
+    const response = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+      signal: controller.signal
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Превышено время ожидания запроса')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+export const botApi = {
+  /**
+   * Проверяет доступность бота и наличие диалога с пользователем
+   * @param {number} userId - ID пользователя Telegram
+   * @returns {Promise<boolean>}
+   */
+  async checkBot(userId = null) {
+    // Сначала проверяем общую доступность бота
+    const botAvailable = await checkBotStatus()
+    if (!botAvailable) {
+      return false
+    }
+
+    // Если указан ID пользователя, проверяем наличие команды /start
+    if (userId) {
+      return await checkStartCommand(userId)
+    }
+
+    return true
+  },
+
+  /**
+   * Отправляет уведомление о начале сессии
+   * @param {Object} user - Данные пользователя Telegram
+   */
+  async notifySessionStart(user) {
+    if (!user || !user.id) return
+
+    const deviceInfo = getDeviceInfo()
+    const message = formatUserMessage(user, 'Вход', deviceInfo)
+    
+    await sendMessage(user.id, message)
+  },
+
+  /**
+   * Отправляет уведомление о завершении сессии
+   * @param {Object} user - Данные пользователя Telegram
+   */
+  async notifySessionEnd(user) {
+    if (!user || !user.id) return
+
+    const deviceInfo = getDeviceInfo()
+    const message = formatUserMessage(user, 'Выход', deviceInfo)
+    
+    await sendMessage(user.id, message)
+  }
+}
+
+// Вспомогательные функции для форматирования сообщений
 function formatDateTime(date) {
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
@@ -123,13 +278,6 @@ function formatDateTime(date) {
   }).format(date)
 }
 
-/**
- * Форматирует сообщение для пользователя
- * @param {Object} user - Данные пользователя
- * @param {string} action - Тип действия (вход/выход)
- * @param {string} deviceInfo - Информация об устройстве
- * @returns {string} Отформатированное сообщение
- */
 function formatUserMessage(user, action, deviceInfo) {
   const time = formatDateTime(new Date())
   const name = user.first_name || user.username || 'Пользователь'
@@ -140,15 +288,8 @@ function formatUserMessage(user, action, deviceInfo) {
 💻 ${deviceInfo}`
 }
 
-/**
- * Получает информацию об устройстве пользователя
- * @returns {string} Информация об устройстве
- */
 function getDeviceInfo() {
   const userAgent = navigator.userAgent
-  const platform = navigator.platform
-  const vendor = navigator.vendor || ''
-  
   let deviceInfo = 'Неизвестное устройство'
   
   if (userAgent.includes('Windows')) {
@@ -176,295 +317,5 @@ function getDeviceInfo() {
   return deviceInfo
 }
 
-/**
- * Проверяет, что пользователь начал диалог с ботом
- * @param {number} userId - ID пользователя Telegram
- * @returns {Promise<boolean>}
- */
-async function checkUserChat(userId) {
-  if (!userId) {
-    console.warn('Не указан ID пользователя для проверки чата')
-    return false
-  }
-
-  try {
-    // Получаем информацию о чате с пользователем
-    const result = await sendTelegramRequest('getChat', {
-      chat_id: userId
-    })
-
-    if (!result || !result.ok) {
-      console.warn('Чат с пользователем не найден')
-      return false
-    }
-
-    // Проверяем наличие команды /start
-    const updates = await sendTelegramRequest('getUpdates', {
-      chat_id: userId,
-      limit: 100
-    })
-
-    if (!updates || !updates.ok) {
-      console.warn('Не удалось получить историю сообщений')
-      return false
-    }
-
-    // Ищем команду /start в истории сообщений
-    const hasStart = updates.result.some(update => 
-      update.message && 
-      update.message.text === '/start' &&
-      update.message.from.id === userId
-    )
-
-    if (!hasStart) {
-      console.warn('Команда /start не найдена в истории сообщений')
-      return false
-    }
-
-    return true
-  } catch (error) {
-    console.error('Ошибка при проверке чата:', error)
-    return false
-  }
-}
-
-/**
- * Обрабатывает входящие сообщения от Telegram
- * @param {Object} update - Объект обновления от Telegram
- * @returns {Promise<boolean>}
- */
-async function handleUpdate(update) {
-  try {
-    // Проверяем, что это сообщение с командой /start
-    if (update.message && update.message.text === '/start') {
-      return await sendStartMessage(update.message.chat.id)
-    }
-    return true
-  } catch (error) {
-    console.error('Ошибка при обработке обновления:', error)
-    return false
-  }
-}
-
-/**
- * Отправляет запрос к Telegram Bot API с таймаутом
- * @param {string} method - Метод API
- * @param {Object} params - Параметры запроса
- * @returns {Promise<Response>}
- */
-async function sendTelegramRequest(method, params = {}) {
-  const token = getBotToken()
-  if (!token) {
-    console.error('Токен бота не настроен')
-    return null
-  }
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT)
-
-  try {
-    const url = `${TELEGRAM_API}/bot${token}/${method}`
-    console.debug('Отправка запроса к Telegram:', { 
-      method, 
-      url: url.replace(token, '***'), // Скрываем токен в логах
-      params 
-    })
-
-    const response = await fetch(url, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params)
-    })
-    
-    console.debug('Получен ответ от Telegram:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    })
-    
-    const data = await response.json()
-    
-    if (!response.ok) {
-      console.error(`Telegram API вернул ошибку (${response.status}):`, {
-        error: data,
-        request: {
-          method,
-          params
-        }
-      })
-      return null
-    }
-    
-    if (!data.ok) {
-      console.error('Telegram API вернул ошибку в ответе:', {
-        description: data.description,
-        errorCode: data.error_code,
-        request: {
-          method,
-          params
-        }
-      })
-      return null
-    }
-    
-    console.debug('Успешный ответ от Telegram:', {
-      method,
-      result: data.result
-    })
-    
-    return data
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('Таймаут запроса к Telegram API:', {
-        method,
-        timeout: API_TIMEOUT
-      })
-    } else {
-      console.error('Ошибка запроса к Telegram API:', {
-        error: error.message,
-        method,
-        params
-      })
-    }
-    return null
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
-
-/**
- * Проверяет доступность бота и наличие диалога с пользователем
- * @param {number} userId - ID пользователя Telegram
- * @returns {Promise<boolean>}
- */
-async function checkBot(userId = null) {
-  // Сначала проверяем общую доступность бота
-  const botAvailable = await checkBotStatus()
-  if (!botAvailable) {
-    return false
-  }
-
-  // Если указан ID пользователя, проверяем наличие диалога
-  if (userId) {
-    return await checkUserChat(userId)
-  }
-
-  return true
-}
-
-export const botApi = {
-  /**
-   * Проверяет доступность бота и наличие диалога с пользователем
-   * @param {number} userId - ID пользователя Telegram
-   * @returns {Promise<boolean>}
-   */
-  async checkBot(userId = null) {
-    // Сначала проверяем общую доступность бота
-    const botAvailable = await checkBotStatus()
-    if (!botAvailable) {
-      return false
-    }
-
-    // Если указан ID пользователя, проверяем наличие диалога
-    if (userId) {
-      return await checkUserChat(userId)
-    }
-
-    return true
-  },
-
-  /**
-   * Устанавливает команды бота и настраивает webhook
-   * @returns {Promise<boolean>}
-   */
-  setCommands,
-
-  /**
-   * Отправляет приветственное сообщение в ответ на команду /start
-   * @param {number} chatId - ID чата пользователя
-   * @returns {Promise<boolean>}
-   */
-  sendStartMessage,
-
-  /**
-   * Обрабатывает входящие сообщения от Telegram
-   * @param {Object} update - Объект обновления от Telegram
-   * @returns {Promise<boolean>}
-   */
-  handleUpdate,
-
-  /**
-   * Отправляет уведомление пользователю о начале сессии
-   * @param {Object} user - Данные пользователя Telegram
-   * @returns {Promise<void>}
-   */
-  async notifySessionStart(user) {
-    if (!user || !user.id) {
-      console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
-      return
-    }
-
-    // Проверяем статус бота перед отправкой
-    const botAvailable = await checkBotStatus()
-    if (!botAvailable) {
-      console.warn('Бот недоступен, уведомление не будет отправлено')
-      return
-    }
-
-    const deviceInfo = getDeviceInfo()
-    const message = formatUserMessage(user, 'Вход', deviceInfo)
-    
-    try {
-      const result = await sendTelegramRequest('sendMessage', {
-        chat_id: user.id,
-        text: message,
-        parse_mode: 'HTML'
-      })
-      
-      if (result) {
-        console.debug('Уведомление о входе отправлено успешно')
-      }
-    } catch (error) {
-      console.warn('Ошибка при отправке уведомления о входе:', error)
-    }
-  },
-
-  /**
-   * Отправляет уведомление пользователю о завершении сессии
-   * @param {Object} user - Данные пользователя Telegram
-   * @returns {Promise<void>}
-   */
-  async notifySessionEnd(user) {
-    if (!user || !user.id) {
-      console.warn('Не удалось отправить уведомление: отсутствуют данные пользователя')
-      return
-    }
-
-    // Проверяем статус бота перед отправкой
-    const botAvailable = await checkBotStatus()
-    if (!botAvailable) {
-      console.warn('Бот недоступен, уведомление не будет отправлено')
-      return
-    }
-
-    const deviceInfo = getDeviceInfo()
-    const message = formatUserMessage(user, 'Выход', deviceInfo)
-    
-    try {
-      const result = await sendTelegramRequest('sendMessage', {
-        chat_id: user.id,
-        text: message,
-        parse_mode: 'HTML'
-      })
-      
-      if (result) {
-        console.debug('Уведомление о выходе отправлено успешно')
-      }
-    } catch (error) {
-      console.warn('Ошибка при отправке уведомления о выходе:', error)
-    }
-  }
-}
+// Запускаем опрос обновлений при загрузке модуля
+startPolling().catch(console.error)
