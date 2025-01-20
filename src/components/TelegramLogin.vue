@@ -49,8 +49,8 @@ async function handleTelegramAuth(user) {
     const botAvailable = await botApi.checkBot(user.id)
     if (!botAvailable) {
       setError(
-        'Сервис уведомлений временно недоступен', 
-        'Пожалуйста, убедитесь что вы:\n1. Начали диалог с ботом @goods_track_bot\n2. Отправили команду /start\n3. Не заблокировали бота'
+        'Необходимо подписаться на бота', 
+        'Пожалуйста:\n1. Перейдите к боту @goods_track_bot\n2. Отправьте команду /start\n3. Вернитесь на эту страницу'
       )
       return
     }

@@ -89,31 +89,15 @@ async function sendStartMessage(chatId) {
     return false
   }
 
+  const siteUrl = import.meta.env.VITE_SITE_URL || 'https://foodtrack.site'
+  const loginUrl = `${siteUrl}/auth`
+
   try {
     const result = await sendTelegramRequest('sendMessage', {
       chat_id: chatId,
-      text: '<b>Диалог начат</b>\nТеперь вы можете войти через Telegram на сайте.',
-      parse_mode: 'HTML'
-    })
-
-    return result && result.ok
-  } catch (error) {
-    console.error('Ошибка при отправке приветственного сообщения:', error)
-    return false
-  }
-}
-
-/**
- * Отправляет приветственное сообщение в чат
- * @param {number} chatId - ID чата пользователя
- * @returns {Promise<boolean>}
- */
-async function sendWelcomeMessage(chatId) {
-  try {
-    const result = await sendTelegramRequest('sendMessage', {
-      chat_id: chatId,
-      text: '<b>Диалог начат</b>\nТеперь вы можете войти через Telegram на сайте.',
-      parse_mode: 'HTML'
+      text: `<b>Вы подписаны!</b>\n\nДля продолжения работы войдите на сайт:\n<a href="${loginUrl}">Войти через Telegram</a>`,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
     })
 
     return result && result.ok
@@ -204,24 +188,42 @@ async function checkUserChat(userId) {
   }
 
   try {
-    // Проверяем доступ к чату пользователя через getChat
+    // Получаем информацию о чате с пользователем
     const result = await sendTelegramRequest('getChat', {
       chat_id: userId
     })
 
-    // Если запрос успешен и чат активен, значит у бота есть доступ
-    if (result && result.ok && result.result.id) {
-      console.debug('Чат пользователя доступен:', {
-        chatId: result.result.id,
-        type: result.result.type
-      })
-      return true
+    if (!result || !result.ok) {
+      console.warn('Чат с пользователем не найден')
+      return false
     }
 
-    console.warn('Чат пользователя недоступен:', result)
-    return false
+    // Проверяем наличие команды /start
+    const updates = await sendTelegramRequest('getUpdates', {
+      chat_id: userId,
+      limit: 100
+    })
+
+    if (!updates || !updates.ok) {
+      console.warn('Не удалось получить историю сообщений')
+      return false
+    }
+
+    // Ищем команду /start в истории сообщений
+    const hasStart = updates.result.some(update => 
+      update.message && 
+      update.message.text === '/start' &&
+      update.message.from.id === userId
+    )
+
+    if (!hasStart) {
+      console.warn('Команда /start не найдена в истории сообщений')
+      return false
+    }
+
+    return true
   } catch (error) {
-    console.error('Ошибка при проверке чата пользователя:', error)
+    console.error('Ошибка при проверке чата:', error)
     return false
   }
 }
@@ -235,7 +237,7 @@ async function handleUpdate(update) {
   try {
     // Проверяем, что это сообщение с командой /start
     if (update.message && update.message.text === '/start') {
-      return await sendWelcomeMessage(update.message.chat.id)
+      return await sendStartMessage(update.message.chat.id)
     }
     return true
   } catch (error) {
