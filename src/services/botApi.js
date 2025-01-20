@@ -3,13 +3,20 @@ const TELEGRAM_API = 'https://api.telegram.org'
 const API_TIMEOUT = 5000 // 5 секунд таймаут
 const POLLING_INTERVAL = 1000 // Интервал опроса в миллисекундах
 
-// Команды бота
+// Команды бота и их описания
 const BOT_COMMANDS = {
   START: '/start',
   STOP: '/stop',
   HELP: '/help',
   SETTINGS: '/settings'
 }
+
+const COMMAND_DESCRIPTIONS = [
+  { command: 'start', description: 'Начать работу с ботом' },
+  { command: 'stop', description: 'Отключить уведомления' },
+  { command: 'help', description: 'Показать справку' },
+  { command: 'settings', description: 'Настройки уведомлений' }
+]
 
 // Получаем токен из переменных окружения или конфигурации
 function getBotToken() {
@@ -22,6 +29,25 @@ function getBotToken() {
 }
 
 /**
+ * Устанавливает команды бота
+ */
+async function setCommands() {
+  try {
+    const result = await sendTelegramRequest('setMyCommands', {
+      commands: COMMAND_DESCRIPTIONS
+    })
+    
+    if (result && result.ok) {
+      console.info('Команды бота успешно установлены')
+    } else {
+      console.warn('Не удалось установить команды бота')
+    }
+  } catch (error) {
+    console.error('Ошибка при установке команд бота:', error)
+  }
+}
+
+/**
  * Проверяет работоспособность бота
  * @returns {Promise<boolean>}
  */
@@ -30,6 +56,8 @@ async function checkBotStatus() {
     const result = await sendTelegramRequest('getMe')
     if (result && result.ok) {
       console.info('Бот успешно подключен:', result.result.username)
+      // Устанавливаем команды при успешном подключении
+      await setCommands()
       return true
     }
     return false
@@ -50,8 +78,28 @@ async function sendStartMessage(chatId) {
 
   return await sendMessage(
     chatId,
-    `<b>Вы подписаны!</b>\n\nДля продолжения работы войдите на сайт:\n<a href="${loginUrl}">Войти через Telegram</a>`,
+    `🎉 <b>Добро пожаловать в FoodTrack!</b>\n\n` +
+    `Для продолжения работы войдите на сайт:\n` +
+    `👉 <a href="${loginUrl}">Войти через Telegram</a>\n\n` +
+    `Отправьте /help чтобы узнать больше о возможностях бота.`,
     { disable_web_page_preview: true }
+  )
+}
+
+/**
+ * Отправляет сообщение с помощью
+ * @param {number} chatId - ID чата пользователя
+ * @returns {Promise<boolean>}
+ */
+async function sendHelpMessage(chatId) {
+  const commandsList = COMMAND_DESCRIPTIONS
+    .map(cmd => `/${cmd.command} - ${cmd.description}`)
+    .join('\n')
+
+  return await sendMessage(
+    chatId,
+    `ℹ️ <b>Доступные команды:</b>\n\n${commandsList}\n\n` +
+    `После входа вы будете получать уведомления о входе в систему с новых устройств.`
   )
 }
 
@@ -111,7 +159,22 @@ async function handleUpdates(offset = 0) {
             await sendStartMessage(chatId)
             break
           case BOT_COMMANDS.STOP:
-            await sendMessage(chatId, 'Вы успешно отключили уведомления. Чтобы начать получать уведомления снова, отправьте команду /start')
+            await sendMessage(
+              chatId, 
+              '🔕 <b>Уведомления отключены</b>\n\n' +
+              'Чтобы снова включить уведомления, отправьте команду /start'
+            )
+            break
+          case BOT_COMMANDS.HELP:
+            await sendHelpMessage(chatId)
+            break
+          case BOT_COMMANDS.SETTINGS:
+            await sendMessage(
+              chatId,
+              '⚙️ <b>Настройки</b>\n\n' +
+              'В данный момент доступны следующие настройки:\n' +
+              '• Включение/отключение уведомлений - используйте команды /start и /stop'
+            )
             break
         }
       }
@@ -123,23 +186,6 @@ async function handleUpdates(offset = 0) {
   } catch (error) {
     console.error('Ошибка при обработке обновлений:', error)
     return offset
-  }
-}
-
-/**
- * Запускает длинный опрос для получения обновлений
- */
-async function startPolling() {
-  let offset = 0
-  
-  while (true) {
-    try {
-      offset = await handleUpdates(offset)
-      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL))
-    } catch (error) {
-      console.error('Ошибка в цикле опроса:', error)
-      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL * 5))
-    }
   }
 }
 
@@ -315,6 +361,23 @@ function getDeviceInfo() {
   }
   
   return deviceInfo
+}
+
+/**
+ * Запускает длинный опрос для получения обновлений
+ */
+async function startPolling() {
+  let offset = 0
+  
+  while (true) {
+    try {
+      offset = await handleUpdates(offset)
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL))
+    } catch (error) {
+      console.error('Ошибка в цикле опроса:', error)
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL * 5))
+    }
+  }
 }
 
 // Запускаем опрос обновлений при загрузке модуля
