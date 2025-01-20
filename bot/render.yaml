@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: foodtrack-bot
+    env: node
+    buildCommand: cd bot && npm install
+    startCommand: cd bot && npm start
+    envVars:
+      - key: VITE_TELEGRAM_BOT_TOKEN
+        sync: false
